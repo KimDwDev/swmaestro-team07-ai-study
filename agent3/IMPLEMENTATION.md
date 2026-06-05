@@ -131,6 +131,9 @@ Content-Type: application/json
 ```
 응답: `final_output`(profile·gap_analysis·roadmap·verified·trace·disclaimer) + `needs_rerun`.
 
+> **실제 응답 예시**: [examples/sample_response.json](examples/sample_response.json) (전체) ·
+> [INTEGRATION.md](INTEGRATION.md#출력--agent3response) (필드 설명 포함 요약)
+
 ### 테스트
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r agent3\requirements-dev.txt

@@ -77,16 +77,98 @@ Agent3는 `extra="ignore"`로 **그대로 받아** 핵심 필드만 사용한다
 ```
 
 ### 출력 — `Agent3Response`
+
+아래는 **실제 호출 응답**(프론트엔드 지망, 주 8시간)을 가독성을 위해 일부 주차/자원만 남긴 것입니다.
+**전체 응답**은 [examples/sample_response.json](examples/sample_response.json)을 참고하세요.
+
 ```json
 {
   "final_output": {
-    "profile": {}, "gap_analysis": {}, "roadmap": {},
-    "verified": true, "trace_summary": [], "disclaimer": "...", "search_degraded": false
+    "profile": {
+      "summary": "JavaScript 기초를 보유했으나 프레임워크 실무 경험이 없습니다.",
+      "strengths": ["JavaScript", "HTML/CSS"],
+      "weaknesses": ["React", "TypeScript"],
+      "interests": ["프론트엔드 개발"],
+      "readiness_level": "mid",
+      "evidence": { "JavaScript": "owned_skills에 명시" }
+    },
+    "gap_analysis": {
+      "gaps": [
+        { "skill": "React", "priority": "high", "current_level": "없음",
+          "target_level": "실무", "skill_status": "known", "verified": true },
+        { "skill": "TypeScript", "priority": "high", "current_level": "없음",
+          "target_level": "실무", "skill_status": "known", "verified": true },
+        { "skill": "상태관리", "priority": "medium", "current_level": "없음",
+          "target_level": "실무", "skill_status": "known", "verified": true }
+      ],
+      "job_evidence_strength": "strong",
+      "needs_rerun": false,
+      "rerun_reason": null
+    },
+    "roadmap": {
+      "horizon": "weeks_8",
+      "total_weeks": 8,
+      "weekly_hours_budget": 8,
+      "rationale": "React와 TypeScript는 JavaScript 기초가 필요하며, 상태관리는 React 이해가 필요합니다. 주 8시간 기준 8주에 배치했습니다.",
+      "weeks": [
+        {
+          "week_index": 1,
+          "objectives": ["JavaScript 기초 문법 학습"],
+          "covered_skills": ["JavaScript"],
+          "planned_hours": 8,
+          "tasks": [
+            {
+              "title": "JavaScript 기초 문법 학습",
+              "skill": "JavaScript",
+              "est_hours": 8,
+              "verified": true,
+              "resources": [
+                {
+                  "title": "MDN: JavaScript 가이드",
+                  "url": "https://developer.mozilla.org/ko/docs/Web/JavaScript/Guide",
+                  "type": "doc",
+                  "verified": true,
+                  "origin": "db",
+                  "source_url": null
+                }
+              ]
+            }
+          ]
+        }
+        /* ... week 2~8 생략 (JavaScript→React→TypeScript→상태관리 순) ... */
+      ]
+    },
+    "verified": true,
+    "search_degraded": false,
+    "disclaimer": "이 로드맵은 학습 방향 제안이며 합격이나 진로를 보장하지 않습니다.",
+    "trace_summary": [
+      { "node": "progress_reconciliation", "decision": "skip_reconcile",
+        "tool_called": null, "output_summary": "이월/완료 컨텍스트 없음", "ts": "..." },
+      { "node": "gap_analysis", "decision": "skip_rerun", "tool_called": "lookup_skill",
+        "output_summary": "gaps=[React(high), TypeScript(high), 상태관리(medium)], needs_rerun=False, verified=True, search_count=0", "ts": "..." },
+      { "node": "roadmap_plan", "decision": null, "tool_called": "lookup_skill",
+        "output_summary": "horizon=weeks_8, weeks=8, verified=True", "ts": "..." },
+      { "node": "roadmap_critic", "decision": "pass", "tool_called": null,
+        "output_summary": "verdict=pass, violations=[위반 없음]", "ts": "..." },
+      { "node": "finalize", "decision": null, "tool_called": null,
+        "output_summary": "FinalOutput 조립 완료, weeks=8", "ts": "..." }
+    ]
   },
-  "needs_rerun":  false,        // true면 통합 그래프가 에이전트2 재실행 필요
+  "needs_rerun": false,        // true면 통합 그래프가 에이전트2 재실행 필요
   "rerun_reason": null
 }
 ```
+
+#### 소비자가 알아둘 핵심 필드
+
+| 필드 | 의미 |
+|------|------|
+| `gap_analysis.gaps[].skill_status` / `verified` | `known`=스킬DB 검증, `unknown`=DB에 없음 |
+| `roadmap.weeks[].tasks[].resources[].origin` | `db`(스킬DB) / `web`(검색 보강) / `llm`(미검증) |
+| `final_output.verified` | 미검증(llm origin) 자원이 섞이면 `false` |
+| `final_output.search_degraded` | 검색 실패/상한 초과 시 `true` (disclaimer에 반영) |
+| `trace_summary[].decision` | 분기 결정(`pass`/`revise`/`rerun_job`/`skip_rerun`…) → "why-this-path" 타임라인 |
+| `needs_rerun` (최상위) | `true`면 통합 그래프가 에이전트2 재호출 필요 |
 
 ---
 
