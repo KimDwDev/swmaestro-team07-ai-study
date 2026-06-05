@@ -1,0 +1,11 @@
+{
+  "summary": "JavaScript 기초를 보유했으나 프레임워크 실무 경험이 없습니다.",
+  "strengths": ["JavaScript", "HTML/CSS"],
+  "weaknesses": ["React", "TypeScript"],
+  "interests": ["프론트엔드 개발"],
+  "readiness_level": "mid",
+  "evidence": {
+    "JavaScript": "owned_skills에 명시",
+    "React": "job 요구사항 required_skills에 포함"
+  }
+}

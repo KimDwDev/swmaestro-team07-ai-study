@@ -1,0 +1,11 @@
+{
+  "summary": "Python과 SQL 기초를 보유하고 있으나 실무 프레임워크 경험이 없습니다.",
+  "strengths": ["Python", "SQL 기초"],
+  "weaknesses": ["FastAPI", "Docker"],
+  "interests": ["백엔드 개발", "클라우드"],
+  "readiness_level": "low",
+  "evidence": {
+    "Python": "owned_skills에 명시",
+    "FastAPI": "job 요구사항 required_skills에 포함"
+  }
+}
