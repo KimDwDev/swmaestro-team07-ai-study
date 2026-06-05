@@ -172,12 +172,39 @@ class WeekPlan(BaseModel):
     tasks: list[TaskItem] = Field(default_factory=list)
     covered_skills: list[str] = Field(default_factory=list)
     planned_hours: int = 0                              # ≤ weekly_hours_budget 검증 대상
+    phase: Optional[str] = None                         # 소속 단계명(LLM 부여). phases 묶음 기준
+
+
+# ── UI 카드(단계) 뷰 — phases는 weeks를 묶어 보여주기 위한 파생 구조 ──
+class ChecklistItem(BaseModel):
+    """대시보드 단계 카드의 체크리스트 항목 1개.
+
+    completed/진행률은 Agent3가 넣지 않는다(사용자 런타임 상태 → 백엔드 소유).
+    id는 백엔드가 완료 상태를 매핑하는 안정 키다.
+    """
+
+    id: str                                             # 안정 식별자 (예: "p1-i2")
+    label: str                                          # 표시 라벨 (예: "개발 환경 세팅")
+    skill: str = ""                                     # 연결 스킬 (활동성 항목은 "")
+    resources: list[ResourceItem] = Field(default_factory=list)
+    est_hours: int = 0
+
+
+class Phase(BaseModel):
+    """UI 로드맵 카드 1개 = 연속된 주차 묶음."""
+
+    index: int                                          # 1-base 단계 번호
+    title: str                                          # 단계명 (예: "기초 다지기")
+    week_from: int
+    week_to: int
+    items: list[ChecklistItem] = Field(default_factory=list)
 
 
 class Roadmap(BaseModel):
     horizon: RoadmapHorizon = RoadmapHorizon.weeks_8
     total_weeks: int = 0
-    weeks: list[WeekPlan] = Field(default_factory=list)
+    weeks: list[WeekPlan] = Field(default_factory=list)     # 주차 상세 (검증·계산용)
+    phases: list[Phase] = Field(default_factory=list)       # 단계 카드 (UI 렌더용, weeks 파생)
     weekly_hours_budget: int = 0                        # 사용자 가용 시간(검증 기준 복사)
     rationale: str = ""                                 # 기간 산출 근거 (Plan-and-Solve)
 

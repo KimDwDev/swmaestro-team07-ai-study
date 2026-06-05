@@ -172,6 +172,83 @@ Agent3는 `extra="ignore"`로 **그대로 받아** 핵심 필드만 사용한다
 
 ---
 
+## UI 로드맵 카드 연동 (`roadmap.phases`)
+
+대시보드의 **"N주 커리어 로드맵" 카드**는 `roadmap.phases`로 그립니다. 각 `Phase`가 카드 1개이며,
+연속된 주차를 묶고 LLM이 단계명을 붙입니다(예: 기초 다지기 / 핵심 역량 강화 / 프로젝트 실전 / 포트폴리오 & 준비).
+
+> **중요**: Agent3는 **구조만** 보냅니다. 체크박스 `completed`와 진행률 `%`는 **넣지 않습니다**
+> (사용자 런타임 상태 → 백엔드 소유). 대신 각 항목에 안정 키 `id`를 주어 백엔드가 완료 상태를 매핑합니다.
+
+### Agent3가 보내는 값 (실제 생성 결과, 1단계 카드 발췌)
+
+```json
+"phases": [
+  {
+    "index": 1,
+    "title": "기초 다지기",
+    "week_from": 1,
+    "week_to": 2,
+    "items": [
+      {
+        "id": "p1-i1",
+        "label": "JavaScript 기초",
+        "skill": "JavaScript",
+        "est_hours": 8,
+        "resources": [
+          { "title": "MDN: JavaScript 가이드", "url": "https://developer.mozilla.org/ko/docs/Web/JavaScript/Guide",
+            "type": "doc", "verified": true, "origin": "db", "source_url": null },
+          { "title": "모던 JavaScript 튜토리얼", "url": "https://ko.javascript.info/",
+            "type": "doc", "verified": true, "origin": "db", "source_url": null }
+        ]
+      },
+      {
+        "id": "p1-i2",
+        "label": "HTML/CSS 기초",
+        "skill": "HTML/CSS",
+        "est_hours": 8,
+        "resources": [ /* MDN HTML/CSS 학습 (origin=db) */ ]
+      }
+    ]
+  }
+  /* [2] "핵심 역량 강화" (3~6주, React/TypeScript/상태관리)
+     [3] "프로젝트 실전" (7주)
+     [4] "포트폴리오 & 준비" (8주) ... 전체는 examples/sample_roadmap_phases.json */
+]
+```
+
+> ⚠️ 단계 묶음은 **LLM 의미 분할**이라 주차 수가 균등하지 않을 수 있습니다(이 예시는 2·4·1·1주).
+> 화면이 "**4단계 × 2주 고정**"을 요구하면 단계 정규화 규칙을 합의해야 합니다.
+> 전체 응답: [examples/sample_roadmap_phases.json](examples/sample_roadmap_phases.json)
+
+### 백엔드가 진행상태를 머지한 뒤 (화면이 받는 형태)
+
+백엔드가 `item id → completed`를 저장하고 끼워 넣어 진행률을 계산합니다(1단계 75% 예시):
+
+```json
+{
+  "index": 1, "title": "기초 다지기", "week_from": 1, "week_to": 2,
+  "progress": 0.75,                       // 백엔드 계산: 완료 3 / 전체 4
+  "items": [
+    { "id": "p1-i1", "label": "필수 개념 학습",        "completed": true  },
+    { "id": "p1-i2", "label": "개발 환경 세팅",        "completed": true  },
+    { "id": "p1-i3", "label": "기초 프로젝트 기획",    "completed": true  },
+    { "id": "p1-i4", "label": "자료구조/알고리즘 복습", "completed": false }
+  ]
+}
+```
+
+### 필드 책임 경계
+
+| 필드 | 누가 |
+|------|------|
+| `phases[].title` (단계명) | **Agent3** (LLM) |
+| `week_from/to`, `items[].id` / `label` / `skill` / `resources` / `est_hours` | **Agent3** |
+| `items[].completed` | **백엔드** (체크박스 저장) |
+| `phases[].progress`, 전체 진행률 % | **백엔드/프론트** (완료수 / 전체수) |
+
+---
+
 ## 협의 우선순위 제안
 
 1. **에이전트2 `keywords`/`evidence_strength` 계약** — Agent3 품질에 직접 영향 (가장 시급)

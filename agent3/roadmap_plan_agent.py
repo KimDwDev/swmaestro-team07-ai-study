@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from .llm import generate_roadmap, suggest_total_weeks
+from .llm import build_phases, generate_roadmap, suggest_total_weeks
 from .models import CriticVerdict, Roadmap
 from .state import Agent3State, append_trace
 from .tools import lookup_skill, normalize_skill_name
@@ -60,6 +60,8 @@ def run_roadmap_plan(state: Agent3State) -> Agent3State:
 
     # 5. 후처리: LLM 추가 스킬 자원 보강 + verified 전파
     _post_process(state, roadmap)
+    # 후처리로 task 스킬·자원이 바뀌므로 단계(phase)를 최종 task 기준으로 재빌드
+    roadmap.phases = build_phases(roadmap.weeks)
     state.roadmap = roadmap
 
     # 6. trace

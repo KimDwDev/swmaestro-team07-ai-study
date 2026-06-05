@@ -42,9 +42,11 @@ _load_env()
 
 from .constants import MAX_WEEKS, MIN_WEEKS
 from .models import (
+    ChecklistItem,
     EvidenceStrength,
     GapItem,
     JobRequirement,
+    Phase,
     PriorityLevel,
     ProfileDiagnosis,
     ResourceItem,
@@ -289,6 +291,7 @@ def generate_roadmap(
         roadmap = _roadmap_from_data(data, weekly_hours, skill_records)
         if not roadmap.weeks:
             return _fallback_roadmap(gaps, weekly_hours, skill_records, total_weeks)
+        roadmap.phases = build_phases(roadmap.weeks)
         return roadmap
     except Exception:
         return _fallback_roadmap(gaps, weekly_hours, skill_records, total_weeks)
@@ -336,6 +339,8 @@ def _build_roadmap_prompt(
 규칙:
 - 각 task의 est_hours 합이 그 주차 planned_hours가 되도록 하세요.
 - resources(링크)는 넣지 마세요. 시스템이 검증된 자원을 자동 부착합니다.
+- 각 주차에 phase(단계명)를 붙이세요. 연속된 2~3개 주차가 같은 단계명을 공유해 묶이도록 하세요.
+  예: "기초 다지기", "핵심 역량 강화", "프로젝트 실전", "포트폴리오 & 준비".
 - 아래 JSON만 반환하세요. 마크다운 코드블록 금지.
 
 {{
@@ -343,6 +348,7 @@ def _build_roadmap_prompt(
   "weeks": [
     {{
       "week_index": 1,
+      "phase": "기초 다지기",
       "objectives": ["string"],
       "planned_hours": {weekly_hours},
       "tasks": [{{"title": "string", "skill": "string", "est_hours": 4}}]
@@ -386,6 +392,7 @@ def _roadmap_from_data(
             if skill and skill not in covered:
                 covered.append(skill)
         planned = _safe_int(w.get("planned_hours")) or sum(t.est_hours for t in tasks)
+        phase = w.get("phase")
         weeks.append(
             WeekPlan(
                 week_index=_safe_int(w.get("week_index")) or i,
@@ -393,6 +400,7 @@ def _roadmap_from_data(
                 tasks=tasks,
                 covered_skills=covered,
                 planned_hours=planned,
+                phase=str(phase).strip() if phase else None,
             )
         )
 
@@ -486,12 +494,82 @@ def _fallback_roadmap(
         horizon=_horizon_for(n_weeks),
         total_weeks=n_weeks,
         weeks=weeks,
+        phases=build_phases(weeks),
         weekly_hours_budget=weekly,
         rationale=(
             f"갭 {len(gaps)}개·총 {total_hours}h·주 {weekly}h 기준 선후행 순서로 "
             f"{n_weeks}주에 배치했습니다."
         ),
     )
+
+
+# ─────────────────────────────────────────────────────────────
+# 단계(Phase) 빌더 — weeks를 UI 카드 단위로 묶는다
+# ─────────────────────────────────────────────────────────────
+def build_phases(weeks: list[WeekPlan]) -> list[Phase]:
+    """주차들을 단계(Phase)로 묶어 UI 카드 구조를 만든다.
+
+    - LLM이 모든 주차에 phase 라벨을 줬으면: 연속된 동일 라벨끼리 묶는다(의미 단위).
+    - 라벨이 없으면(폴백 등): 2주씩 기계적으로 묶고 제목은 커버 스킬에서 파생한다.
+    각 단계의 items는 그 주차들의 task를 ChecklistItem(id 부여, completed 없음)으로 변환한다.
+    """
+    if not weeks:
+        return []
+    ordered = sorted(weeks, key=lambda w: w.week_index)
+
+    groups: list[dict] = []
+    if all((w.phase or "").strip() for w in ordered):
+        for w in ordered:
+            label = w.phase.strip()
+            if groups and groups[-1]["title"] == label:
+                groups[-1]["weeks"].append(w)
+            else:
+                groups.append({"title": label, "weeks": [w]})
+    else:
+        for i in range(0, len(ordered), 2):
+            chunk = ordered[i : i + 2]
+            groups.append({"title": _derive_phase_title(chunk), "weeks": chunk})
+
+    phases: list[Phase] = []
+    for idx, g in enumerate(groups, start=1):
+        items: list[ChecklistItem] = []
+        n = 1
+        for w in g["weeks"]:
+            for t in w.tasks:
+                items.append(
+                    ChecklistItem(
+                        id=f"p{idx}-i{n}",
+                        label=t.title,
+                        skill=t.skill,
+                        resources=list(t.resources),
+                        est_hours=t.est_hours,
+                    )
+                )
+                n += 1
+        ws = g["weeks"]
+        phases.append(
+            Phase(
+                index=idx,
+                title=g["title"],
+                week_from=ws[0].week_index,
+                week_to=ws[-1].week_index,
+                items=items,
+            )
+        )
+    return phases
+
+
+def _derive_phase_title(chunk: list[WeekPlan]) -> str:
+    """라벨 없는 폴백 단계의 제목을 커버 스킬에서 만든다."""
+    skills: list[str] = []
+    for w in chunk:
+        for s in w.covered_skills:
+            if s and s not in skills:
+                skills.append(s)
+    if skills:
+        head = " · ".join(skills[:2])
+        return head + (" 외 학습" if len(skills) > 2 else " 학습")
+    return f"{chunk[0].week_index}-{chunk[-1].week_index}주차"
 
 
 def _topo_order_gaps(
