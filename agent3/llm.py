@@ -18,6 +18,7 @@ import json
 import math
 import os
 import re
+from collections import Counter
 from pathlib import Path
 from typing import Optional
 
@@ -261,10 +262,12 @@ def generate_roadmap(
     revision_context: Optional[dict] = None,
     completed_skills: Optional[list[str]] = None,
     carry_over_skills: Optional[list[str]] = None,
+    owned_skills: Optional[list[str]] = None,
 ) -> Roadmap:
     """주차별 로드맵을 생성한다(LLM, 규칙기반 폴백 포함).
 
     skill_records: gap 스킬명 → lookup_skill/web_search로 노드가 미리 확보한 SkillRecord.
+    owned_skills: 사용자가 이미 보유한 스킬(profile.strengths). 재학습 주차를 막는 데 사용.
     LLM은 주차 배치·목표만 생성하고, 자원(resources)은 skill_records에서 결정론적으로 부착해
     환각 링크를 차단한다.
     """
@@ -275,9 +278,13 @@ def generate_roadmap(
     if client is None:
         return _fallback_roadmap(gaps, weekly_hours, skill_records, total_weeks)
 
+    # 이미 보유/완료한 스킬은 재학습 대상에서 제외하도록 합쳐 전달
+    known_skills = list(dict.fromkeys((owned_skills or []) + (completed_skills or [])))
+
     try:
         prompt = _build_roadmap_prompt(
-            gaps, weekly_hours, skill_records, total_weeks, revision_context, carry_over_skills
+            gaps, weekly_hours, skill_records, total_weeks,
+            revision_context, carry_over_skills, known_skills,
         )
         response = client.chat.completions.create(
             model=DEFAULT_SOLAR_MODEL,
@@ -304,6 +311,7 @@ def _build_roadmap_prompt(
     total_weeks: int,
     revision_context: Optional[dict],
     carry_over_skills: Optional[list[str]],
+    known_skills: Optional[list[str]] = None,
 ) -> str:
     skill_lines = []
     for g in gaps:
@@ -327,6 +335,8 @@ def _build_roadmap_prompt(
 [부족 역량(우선순위·선행·표준시간)]
 {skills_block}
 
+[이미 보유한 스킬 — 재학습 금지]: {known_skills or []}
+
 [제약]
 - 주당 가용시간: {weekly_hours}시간. 각 주차 planned_hours는 절대 이 값을 넘기지 마세요.
 - 총 주차 수: 약 {total_weeks}주를 목표로 하되 갭을 모두 담으세요.
@@ -336,11 +346,20 @@ def _build_roadmap_prompt(
 - 이월 스킬(있으면 우선): {carry_over_skills or []}
 {revision_block}
 
+[보유 스킬 처리]
+- "이미 보유한 스킬"은 새로 배우는 학습 주차로 만들지 마세요. 주차는 부족 역량 학습에 집중하세요.
+- 선행으로 꼭 필요하면 1주차에 "짧은 복습"으로만 가볍게 언급하고, 주차 대부분을 부족 역량에 쓰세요.
+
+[단계(phase) 구성]
+- 전체를 정확히 4개 단계로 나누세요. 각 단계의 주차 수를 최대한 균등하게(±1주) 배분하세요.
+- 각 단계는 3~4개의 task(체크리스트 항목)를 갖게 하세요.
+- 단계 제목과 그 단계의 실제 내용이 일치해야 합니다(예: "프로젝트 실전" 단계에는 학습이 아닌 프로젝트성 task를 넣으세요).
+- 단계명 예시 순서: "기초 다지기" → "핵심 역량 강화" → "프로젝트 실전" → "포트폴리오 & 준비".
+
 규칙:
 - 각 task의 est_hours 합이 그 주차 planned_hours가 되도록 하세요.
 - resources(링크)는 넣지 마세요. 시스템이 검증된 자원을 자동 부착합니다.
-- 각 주차에 phase(단계명)를 붙이세요. 연속된 2~3개 주차가 같은 단계명을 공유해 묶이도록 하세요.
-  예: "기초 다지기", "핵심 역량 강화", "프로젝트 실전", "포트폴리오 & 준비".
+- 연속된 주차가 같은 phase(단계명)를 공유해 묶이도록 각 주차에 phase를 붙이세요.
 - 아래 JSON만 반환하세요. 마크다운 코드블록 금지.
 
 {{
@@ -504,41 +523,38 @@ def _fallback_roadmap(
 
 
 # ─────────────────────────────────────────────────────────────
-# 단계(Phase) 빌더 — weeks를 UI 카드 단위로 묶는다
+# 단계(Phase) 빌더 — weeks를 항상 정확히 4개 카드로 균등 분할
 # ─────────────────────────────────────────────────────────────
-def build_phases(weeks: list[WeekPlan]) -> list[Phase]:
-    """주차들을 단계(Phase)로 묶어 UI 카드 구조를 만든다.
+TARGET_PHASES = 4  # UI 로드맵 카드 수 고정
+_DEFAULT_PHASE_TITLES = ["기초 다지기", "핵심 역량 강화", "프로젝트 실전", "포트폴리오 & 준비"]
 
-    - LLM이 모든 주차에 phase 라벨을 줬으면: 연속된 동일 라벨끼리 묶는다(의미 단위).
-    - 라벨이 없으면(폴백 등): 2주씩 기계적으로 묶고 제목은 커버 스킬에서 파생한다.
-    각 단계의 items는 그 주차들의 task를 ChecklistItem(id 부여, completed 없음)으로 변환한다.
+
+def build_phases(weeks: list[WeekPlan], target: int = TARGET_PHASES) -> list[Phase]:
+    """주차들을 **정확히 `target`개**(주차가 더 적으면 주차 수만큼) 단계로 균등 분할한다.
+
+    화면의 "4카드 × 균등 주차" 레이아웃을 보장한다(예: 8주 → 2·2·2·2).
+    제목은 그 그룹 주차의 LLM phase 라벨(최빈, 중복 아닌 경우)을 쓰고,
+    없거나 충돌하면 표준 4단계 제목(_DEFAULT_PHASE_TITLES)을 위치별로 부여한다.
+    각 단계 items는 그룹 주차의 task를 ChecklistItem(id 부여, completed 없음)으로 변환한다.
     """
     if not weeks:
         return []
     ordered = sorted(weeks, key=lambda w: w.week_index)
-
-    groups: list[dict] = []
-    if all((w.phase or "").strip() for w in ordered):
-        for w in ordered:
-            label = w.phase.strip()
-            if groups and groups[-1]["title"] == label:
-                groups[-1]["weeks"].append(w)
-            else:
-                groups.append({"title": label, "weeks": [w]})
-    else:
-        for i in range(0, len(ordered), 2):
-            chunk = ordered[i : i + 2]
-            groups.append({"title": _derive_phase_title(chunk), "weeks": chunk})
+    k = min(target, len(ordered))
+    groups = _even_contiguous_split(ordered, k)
 
     phases: list[Phase] = []
-    for idx, g in enumerate(groups, start=1):
+    used_titles: set[str] = set()
+    for idx, ws in enumerate(groups):
+        title = _pick_phase_title(ws, idx, used_titles)
+        used_titles.add(title)
         items: list[ChecklistItem] = []
         n = 1
-        for w in g["weeks"]:
+        for w in ws:
             for t in w.tasks:
                 items.append(
                     ChecklistItem(
-                        id=f"p{idx}-i{n}",
+                        id=f"p{idx + 1}-i{n}",
                         label=t.title,
                         skill=t.skill,
                         resources=list(t.resources),
@@ -546,11 +562,10 @@ def build_phases(weeks: list[WeekPlan]) -> list[Phase]:
                     )
                 )
                 n += 1
-        ws = g["weeks"]
         phases.append(
             Phase(
-                index=idx,
-                title=g["title"],
+                index=idx + 1,
+                title=title,
                 week_from=ws[0].week_index,
                 week_to=ws[-1].week_index,
                 items=items,
@@ -559,17 +574,29 @@ def build_phases(weeks: list[WeekPlan]) -> list[Phase]:
     return phases
 
 
-def _derive_phase_title(chunk: list[WeekPlan]) -> str:
-    """라벨 없는 폴백 단계의 제목을 커버 스킬에서 만든다."""
-    skills: list[str] = []
-    for w in chunk:
-        for s in w.covered_skills:
-            if s and s not in skills:
-                skills.append(s)
-    if skills:
-        head = " · ".join(skills[:2])
-        return head + (" 외 학습" if len(skills) > 2 else " 학습")
-    return f"{chunk[0].week_index}-{chunk[-1].week_index}주차"
+def _even_contiguous_split(seq: list, k: int) -> list[list]:
+    """seq를 연속 유지하며 k개로 최대한 균등 분할. 나머지는 앞 그룹부터 +1."""
+    n = len(seq)
+    base, rem = divmod(n, k)
+    out: list[list] = []
+    i = 0
+    for g in range(k):
+        size = base + (1 if g < rem else 0)
+        out.append(seq[i : i + size])
+        i += size
+    return out
+
+
+def _pick_phase_title(ws: list[WeekPlan], idx: int, used: set[str]) -> str:
+    """그룹 제목: LLM 라벨 최빈값(중복 아니면) 우선, 없으면 표준 제목."""
+    labels = [(w.phase or "").strip() for w in ws if (w.phase or "").strip()]
+    if labels:
+        common = Counter(labels).most_common(1)[0][0]
+        if common and common not in used:
+            return common
+    if idx < len(_DEFAULT_PHASE_TITLES) and _DEFAULT_PHASE_TITLES[idx] not in used:
+        return _DEFAULT_PHASE_TITLES[idx]
+    return f"{idx + 1}단계"
 
 
 def _topo_order_gaps(

@@ -1,8 +1,8 @@
-"""build_phases — 주차를 UI 단계 카드로 묶기 (라벨 기반 / 폴백 청크)."""
+"""build_phases — 항상 정확히 4단계로 균등 분할 (UI 카드 고정)."""
 
 from __future__ import annotations
 
-from agent3.llm import build_phases
+from agent3.llm import TARGET_PHASES, build_phases
 from agent3.models import ResourceItem, SourceOrigin, TaskItem, WeekPlan
 
 
@@ -24,40 +24,66 @@ def _week(idx, phase, skills):
     )
 
 
-def test_semantic_grouping_by_phase_label():
+def test_eight_weeks_split_into_four_even_phases():
     weeks = [
         _week(1, "기초 다지기", ["JavaScript"]),
         _week(2, "기초 다지기", ["JavaScript"]),
         _week(3, "핵심 역량 강화", ["React"]),
-        _week(4, "핵심 역량 강화", ["TypeScript"]),
+        _week(4, "핵심 역량 강화", ["React"]),
+        _week(5, "프로젝트 실전", ["TypeScript"]),
+        _week(6, "프로젝트 실전", ["TypeScript"]),
+        _week(7, "포트폴리오 & 준비", ["상태관리"]),
+        _week(8, "포트폴리오 & 준비", ["상태관리"]),
     ]
     phases = build_phases(weeks)
-    assert len(phases) == 2
-    assert phases[0].title == "기초 다지기"
-    assert phases[0].week_from == 1 and phases[0].week_to == 2
-    assert phases[1].title == "핵심 역량 강화"
-    assert phases[1].week_from == 3 and phases[1].week_to == 4
+    assert len(phases) == 4
+    # 8주 → 2·2·2·2 균등
+    assert [(p.week_from, p.week_to) for p in phases] == [(1, 2), (3, 4), (5, 6), (7, 8)]
+    # 라벨 그대로 제목
+    assert [p.title for p in phases] == ["기초 다지기", "핵심 역량 강화", "프로젝트 실전", "포트폴리오 & 준비"]
 
 
-def test_checklist_item_ids_and_resources():
-    weeks = [_week(1, "기초", ["JavaScript", "HTML/CSS"])]
+def test_always_four_phases_even_without_labels():
+    weeks = [_week(i, None, ["React"]) for i in range(1, 9)]  # 라벨 없음
     phases = build_phases(weeks)
+    assert len(phases) == 4
+    assert [(p.week_from, p.week_to) for p in phases] == [(1, 2), (3, 4), (5, 6), (7, 8)]
+    # 라벨 없으면 표준 4제목
+    assert [p.title for p in phases] == ["기초 다지기", "핵심 역량 강화", "프로젝트 실전", "포트폴리오 & 준비"]
+
+
+def test_six_weeks_balanced_2_2_1_1():
+    weeks = [_week(i, None, ["React"]) for i in range(1, 7)]
+    phases = build_phases(weeks)
+    assert len(phases) == 4
+    assert [(p.week_from, p.week_to) for p in phases] == [(1, 2), (3, 4), (5, 5), (6, 6)]
+
+
+def test_unique_titles_no_duplicates():
+    # 라벨이 한 종류뿐이어도 4개 카드 제목이 중복되지 않아야
+    weeks = [_week(i, "기초 다지기", ["React"]) for i in range(1, 9)]
+    phases = build_phases(weeks)
+    titles = [p.title for p in phases]
+    assert len(set(titles)) == 4
+
+
+def test_checklist_item_ids_and_no_completed():
+    weeks = [_week(1, "기초", ["JavaScript", "HTML/CSS"]), _week(2, "기초", ["React"])]
+    phases = build_phases(weeks, target=2)
     items = phases[0].items
-    assert [it.id for it in items] == ["p1-i1", "p1-i2"]
-    assert items[0].label == "JavaScript 학습"
-    assert items[0].skill == "JavaScript"
+    assert items[0].id == "p1-i1"
     assert items[0].resources and items[0].resources[0].verified is True
-    # completed 필드는 존재하지 않는다 (Agent3는 진행상태를 내보내지 않음)
     assert not hasattr(items[0], "completed")
 
 
-def test_fallback_chunks_two_weeks_when_no_labels():
-    weeks = [_week(i, None, ["React"]) for i in range(1, 5)]  # 라벨 없음
-    phases = build_phases(weeks)
-    assert len(phases) == 2  # 4주 → 2주씩 2단계
-    assert phases[0].week_from == 1 and phases[0].week_to == 2
-    assert phases[1].week_from == 3 and phases[1].week_to == 4
-    assert phases[0].title  # 커버 스킬에서 파생된 제목
+def test_fewer_weeks_than_target():
+    weeks = [_week(1, None, ["React"]), _week(2, None, ["TypeScript"])]
+    phases = build_phases(weeks)  # 2주 < 4 → 2단계
+    assert len(phases) == 2
+
+
+def test_target_constant_is_four():
+    assert TARGET_PHASES == 4
 
 
 def test_empty_weeks():

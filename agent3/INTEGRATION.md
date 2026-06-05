@@ -174,11 +174,14 @@ Agent3는 `extra="ignore"`로 **그대로 받아** 핵심 필드만 사용한다
 
 ## UI 로드맵 카드 연동 (`roadmap.phases`)
 
-대시보드의 **"N주 커리어 로드맵" 카드**는 `roadmap.phases`로 그립니다. 각 `Phase`가 카드 1개이며,
-연속된 주차를 묶고 LLM이 단계명을 붙입니다(예: 기초 다지기 / 핵심 역량 강화 / 프로젝트 실전 / 포트폴리오 & 준비).
+대시보드의 **"8주 커리어 로드맵" 카드**는 `roadmap.phases`로 그립니다. `phases`는 **항상 정확히 4개 카드**이며,
+주차를 균등 분할합니다(8주 → 2·2·2·2). 제목은 표준 4단계
+(기초 다지기 / 핵심 역량 강화 / 프로젝트 실전 / 포트폴리오 & 준비)입니다.
 
 > **중요**: Agent3는 **구조만** 보냅니다. 체크박스 `completed`와 진행률 `%`는 **넣지 않습니다**
 > (사용자 런타임 상태 → 백엔드 소유). 대신 각 항목에 안정 키 `id`를 주어 백엔드가 완료 상태를 매핑합니다.
+>
+> 보유 스킬(profile.strengths)은 재학습하지 않습니다 — 아래 `JavaScript 짧은 복습(2h)`처럼 가벼운 복습만.
 
 ### Agent3가 보내는 값 (실제 생성 결과, 1단계 카드 발췌)
 
@@ -192,33 +195,26 @@ Agent3는 `extra="ignore"`로 **그대로 받아** 핵심 필드만 사용한다
     "items": [
       {
         "id": "p1-i1",
-        "label": "JavaScript 기초",
+        "label": "JavaScript 짧은 복습",     // 보유 스킬 → 짧은 복습(2h)만
         "skill": "JavaScript",
-        "est_hours": 8,
+        "est_hours": 2,
         "resources": [
           { "title": "MDN: JavaScript 가이드", "url": "https://developer.mozilla.org/ko/docs/Web/JavaScript/Guide",
-            "type": "doc", "verified": true, "origin": "db", "source_url": null },
-          { "title": "모던 JavaScript 튜토리얼", "url": "https://ko.javascript.info/",
             "type": "doc", "verified": true, "origin": "db", "source_url": null }
         ]
       },
-      {
-        "id": "p1-i2",
-        "label": "HTML/CSS 기초",
-        "skill": "HTML/CSS",
-        "est_hours": 8,
-        "resources": [ /* MDN HTML/CSS 학습 (origin=db) */ ]
-      }
+      { "id": "p1-i2", "label": "React 기초 학습",      "skill": "React",      "est_hours": 8, "resources": [ /* React 공식문서 */ ] },
+      { "id": "p1-i3", "label": "React 심화 학습",      "skill": "React",      "est_hours": 3, "resources": [ /* ... */ ] },
+      { "id": "p1-i4", "label": "TypeScript 기초 학습", "skill": "TypeScript", "est_hours": 3, "resources": [ /* ... */ ] }
     ]
   }
-  /* [2] "핵심 역량 강화" (3~6주, React/TypeScript/상태관리)
-     [3] "프로젝트 실전" (7주)
-     [4] "포트폴리오 & 준비" (8주) ... 전체는 examples/sample_roadmap_phases.json */
+  /* [2] "핵심 역량 강화" (3-4주), [3] "프로젝트 실전" (5-6주),
+     [4] "포트폴리오 & 준비" (7-8주) ... 전체는 examples/sample_roadmap_phases.json */
 ]
 ```
 
-> ⚠️ 단계 묶음은 **LLM 의미 분할**이라 주차 수가 균등하지 않을 수 있습니다(이 예시는 2·4·1·1주).
-> 화면이 "**4단계 × 2주 고정**"을 요구하면 단계 정규화 규칙을 합의해야 합니다.
+> ✅ **4카드 고정**: `phases`는 항상 4개, 8주면 **2·2·2·2 균등 분할**됩니다(`llm.build_phases`).
+> 주차가 4 미만이면 주차 수만큼만 카드가 나옵니다(희귀).
 > 전체 응답: [examples/sample_roadmap_phases.json](examples/sample_roadmap_phases.json)
 
 ### 백엔드가 진행상태를 머지한 뒤 (화면이 받는 형태)
