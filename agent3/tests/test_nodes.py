@@ -44,21 +44,21 @@ def test_gap_no_rerun_when_exhausted(profile_frontend):
 
 
 def test_gap_unknown_skill_web_enrichment(monkeypatch, profile_frontend):
-    """DB-miss 스킬은 web_search로 보강 — 네트워크 대신 stub 사용."""
+    """DB-miss 스킬은 web_search로 보강 — 네트워크 대신 stub 사용 (Rust는 스킬DB에 없음)."""
     from agent3.models import SearchHit
 
     async def fake_web_search(query, k=5):
-        return [SearchHit(title="GraphQL 공식", url="https://graphql.org/learn/", source="graphql.org")]
+        return [SearchHit(title="Rust 공식", url="https://doc.rust-lang.org/book/", source="rust-lang.org")]
 
     monkeypatch.setattr("agent3.tools.web_search", fake_web_search)
 
     job = JobRequirement(
-        required_skills=["GraphQL API 설계"], keywords=["GraphQL"], evidence_strength="strong"
+        required_skills=["Rust로 시스템 프로그래밍"], keywords=["Rust"], evidence_strength="strong"
     )
     st = Agent3State(profile=profile_frontend, job_requirement=job, weekly_hours=8)
     st = _run(run_gap_analysis(st))
 
-    gq = next((g for g in st.gap_analysis.gaps if "graphql" in g.skill.lower()), None)
+    gq = next((g for g in st.gap_analysis.gaps if "rust" in g.skill.lower()), None)
     assert gq is not None
     assert gq.skill_status == SkillStatus.unknown
     rec = st.skill_records[gq.skill]
@@ -78,7 +78,7 @@ def test_gap_unknown_skill_no_web_lowers_verified(monkeypatch, profile_frontend)
     monkeypatch.setattr("agent3.tools.web_search", empty_web_search)
 
     job = JobRequirement(
-        required_skills=["GraphQL"], keywords=["GraphQL"], evidence_strength="strong"
+        required_skills=["Rust"], keywords=["Rust"], evidence_strength="strong"
     )
     st = Agent3State(profile=profile_frontend, job_requirement=job, weekly_hours=8)
     st = _run(run_gap_analysis(st))

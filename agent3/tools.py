@@ -45,9 +45,10 @@ def _load_db() -> dict:
             "skills": data.get("skills", {}),
             "roles": data.get("roles", {}),
             "aliases": data.get("aliases", {}),
+            "role_aliases": data.get("role_aliases", {}),
         }
     except Exception:
-        return {"skills": {}, "roles": {}, "aliases": {}}
+        return {"skills": {}, "roles": {}, "aliases": {}, "role_aliases": {}}
 
 
 # ─────────────────────────────────────────────────────────────
@@ -130,20 +131,43 @@ def _unknown_record(name: str) -> SkillRecord:
 
 
 # ─────────────────────────────────────────────────────────────
+# normalize_role_name — 자유 직무표기 → 표준 직무 키
+# ─────────────────────────────────────────────────────────────
+def normalize_role_name(raw: str) -> str:
+    """직무 자유표기를 스킬DB 표준 직무 키로 정규화.
+
+    예: "프론트엔드 엔지니어" → "프론트엔드 개발자", "ML engineer" → "머신러닝 엔지니어".
+    매칭 실패 시 입력을 strip만 해서 그대로 반환(throw 금지).
+    """
+    if not raw or not raw.strip():
+        return raw
+    db = _load_db()
+    roles = db["roles"]
+    role_aliases = db["role_aliases"]
+
+    stripped = raw.strip()
+    if stripped in roles:                 # 이미 표준 직무 키
+        return stripped
+    lowered = stripped.lower()
+    if lowered in role_aliases:           # 직무 별칭 매칭
+        return role_aliases[lowered]
+    for key in roles:                     # 대소문자 무시 키 매칭
+        if key.lower() == lowered:
+            return key
+    return stripped
+
+
+# ─────────────────────────────────────────────────────────────
 # list_skills_for_role — 직무별 스킬 일괄 조회
 # ─────────────────────────────────────────────────────────────
 def list_skills_for_role(role: str) -> list[SkillRecord]:
-    """직무명으로 관련 SkillRecord 일괄 조회. 미매핑 시 빈 리스트(throw 금지)."""
+    """직무명으로 관련 SkillRecord 일괄 조회. 미매핑 시 빈 리스트(throw 금지).
+
+    normalize_role_name으로 직무 별칭/표기 변형을 표준 키로 보정한 뒤 조회한다.
+    """
     try:
         roles = _load_db()["roles"]
-        skill_names = roles.get(role)
-        if skill_names is None:
-            # 공백/대소문자 보정 재시도
-            target = role.strip()
-            for key, names in roles.items():
-                if key.strip() == target:
-                    skill_names = names
-                    break
+        skill_names = roles.get(normalize_role_name(role))
         if not skill_names:
             return []
         return [lookup_skill(s) for s in skill_names]

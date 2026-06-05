@@ -8,6 +8,7 @@ from agent3.models import SkillStatus, SourceOrigin
 from agent3.tools import (
     list_skills_for_role,
     lookup_skill,
+    normalize_role_name,
     normalize_skill_name,
     web_search,
     web_search_budgeted,
@@ -64,6 +65,32 @@ def test_list_skills_backend():
 
 def test_list_skills_unknown_role():
     assert list_skills_for_role("존재하지 않는 직무") == []
+
+
+# ── normalize_role_name (직무 별칭 정규화) ────────────────────
+def test_normalize_role_alias():
+    assert normalize_role_name("프론트엔드 엔지니어") == "프론트엔드 개발자"
+    assert normalize_role_name("백엔드 엔지니어") == "백엔드 개발자"
+    assert normalize_role_name("ML Engineer") == "머신러닝 엔지니어"
+    assert normalize_role_name("데브옵스") == "DevOps 엔지니어"
+
+
+def test_normalize_role_passthrough():
+    assert normalize_role_name("프론트엔드 개발자") == "프론트엔드 개발자"  # 이미 표준
+    assert normalize_role_name("희귀직무") == "희귀직무"  # 미매칭 원문
+
+
+def test_list_skills_via_role_alias():
+    # 별칭으로도 직무 스킬이 조회돼야 (프론트엔드 엔지니어 → 프론트엔드 개발자)
+    skills = list_skills_for_role("프론트엔드 엔지니어")
+    assert len(skills) == 10
+    names = {s.name for s in skills}
+    assert "React" in names and "TypeScript" in names
+
+
+def test_new_roles_present():
+    for role in ["데이터 분석가", "데이터 엔지니어", "머신러닝 엔지니어", "DevOps 엔지니어", "풀스택 개발자"]:
+        assert list_skills_for_role(role), f"{role} 매핑 비어있음"
 
 
 # ── web_search 예산/캐시 (네트워크 없이) ──────────────────────

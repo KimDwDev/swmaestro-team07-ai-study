@@ -36,6 +36,14 @@ def test_aliases_reference_existing_skills():
         assert target in keys, f"alias {alias!r} 타깃 {target!r}가 skills에 없음"
 
 
+def test_role_aliases_reference_existing_roles():
+    db = _load()
+    role_keys = set(db["roles"])
+    for alias, target in db.get("role_aliases", {}).items():
+        assert target in role_keys, f"role_alias {alias!r} 타깃 {target!r}가 roles에 없음"
+        assert alias == alias.lower(), f"role_alias 키 {alias!r}는 소문자여야(매칭 일관성)"
+
+
 def test_no_prereq_cycles():
     db = _load()
     skills = db["skills"]

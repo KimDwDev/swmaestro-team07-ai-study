@@ -49,7 +49,7 @@ Agent2의 `JobRequirement`는 필드가 많고(`companies`, `postings` 등) `sou
 | `constants.py` | MAX_RERUN/MAX_REVISIONS/MAX_SEARCH, 금칙어, 기간 캡 | - |
 | `models.py` | Pydantic 모델 전체 (입력·툴·출력·FinalOutput) | - |
 | `state.py` | `Agent3State`(공유 상태) + `append_trace` | - |
-| `skill_db.json` | 정적 스킬 사전 (백엔드+프론트엔드 37스킬, prereqs·resources·hours) | - |
+| `skill_db.json` | 정적 스킬 사전 (7직무·53스킬, prereqs·resources·hours, 직무/스킬 별칭 정규화) | - |
 | `tools.py` | `lookup_skill`/`normalize_skill_name`/`list_skills_for_role`/`web_search` | - |
 | `llm.py` | `extract_gaps`/`generate_roadmap` (Solar) + **규칙기반 폴백** | ✅ |
 | `gap_analysis_agent.py` | gap 노드: LLM 추출 + 툴 확정 + needs_rerun | ✅ |

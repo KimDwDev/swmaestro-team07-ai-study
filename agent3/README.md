@@ -69,7 +69,7 @@ agent3/
 ├── constants.py              # MAX_RERUN/MAX_REVISIONS/MAX_SEARCH/FORBIDDEN_PHRASES ...
 ├── models.py                 # Pydantic 모델 (GapAnalysis, Roadmap, SkillRecord, FinalOutput ...)
 ├── state.py                  # Agent3State(공유 상태) + append_trace 헬퍼
-├── skill_db.json             # 정적 스킬 사전 (백엔드+프론트엔드, 37스킬)
+├── skill_db.json             # 정적 스킬 사전 (7직무·53스킬 + 직무/스킬 별칭)
 ├── tools.py                  # lookup_skill, normalize_skill_name, list_skills_for_role, web_search
 ├── llm.py                    # Solar LLM (extract_gaps, generate_roadmap) + 규칙 폴백
 ├── gap_analysis_agent.py     # gap_analysis 노드
