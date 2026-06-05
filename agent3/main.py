@@ -44,15 +44,19 @@ _UNVERIFIED_DISCLAIMER = "일부 항목은 검증되지 않아 직접 확인이 
 async def run_agent3(
     profile: ProfileDiagnosis,
     job_requirement: JobRequirement,
-    weekly_hours: int,
+    weekly_hours: Optional[int] = None,
     episodic_memory: Optional[EpisodicMemory] = None,
     rerun_count: int = 0,
 ) -> Agent3State:
-    """Agent3 전체 파이프라인을 실행해 최종 state를 반환한다."""
+    """Agent3 전체 파이프라인을 실행해 최종 state를 반환한다.
+
+    weekly_hours는 명시값 우선, 없으면 profile.weekly_hours(에이전트1 보존값), 그래도 없으면 8.
+    """
+    effective_weekly = weekly_hours or profile.weekly_hours or 8
     state = Agent3State(
         profile=profile,
         job_requirement=job_requirement,
-        weekly_hours=weekly_hours,
+        weekly_hours=effective_weekly,
         episodic_memory=episodic_memory,
         rerun_count=rerun_count,
     )
@@ -156,7 +160,7 @@ class Agent3Request(BaseModel):
 
     profile: ProfileDiagnosis
     job_requirement: JobRequirement
-    weekly_hours: int = Field(8, ge=1, le=80)
+    weekly_hours: Optional[int] = Field(None, ge=1, le=80)  # 생략 시 profile.weekly_hours 사용
     episodic_memory: Optional[EpisodicMemory] = None
     rerun_count: int = Field(0, ge=0)
 

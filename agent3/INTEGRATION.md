@@ -16,14 +16,23 @@
 
 ## 1. 에이전트1 (profile_diagnosis) 담당자와
 
-현재 `tests/fixtures/profile_*.json` 목으로 `ProfileDiagnosis` 형태를 가정 중.
+✅ **스키마 정합 완료** — `feature/Agent_2`의 `ProfileDiagnosis`(`backend/agent2/profile_agent.py`)에 맞춰
+Agent3의 `models.py::ProfileDiagnosis`를 일치시켰다. 온보딩 8필드(`major~concern`) 보존 + 정성 진단
+(`summary/strengths/weaknesses/evidence`).
 
-- [ ] **출력 스키마 일치**: 에이전트1 출력이 `summary / strengths / weaknesses / interests / readiness_level / evidence` 필드와 맞는가
-- [ ] **strengths/weaknesses 입도**: Agent3는 이를 **스킬명 수준**(`"JavaScript"`, `"React"`)으로 보고 `strengths`를 갭에서 제외한다. 문장형(`"JS로 앱 만들어봄"`)으로 주면 제외 매칭이 실패 → 입도 합의 필요
-- [ ] **readiness_level enum**: `"low" / "mid" / "high"` 동일하게 쓰는가
-- [ ] **weakness 정확도**: weaknesses가 부족역량 후보로 직접 쓰이므로 과대/과소 추정 주의
+**확인된 핵심 사실 (Agent3가 의존하는 부분):**
+- ✅ **`owned_skills`가 실제 보유 스킬** — Agent3의 "보유 기준"은 이것을 쓴다. `strengths`/`weaknesses`는
+  스킬명이 아니라 정성 개념(`"개발 경험 부족"`, `"전공 일치도"`)이므로 갭 제외 기준으로 쓰지 않는다.
+- ✅ **`weekly_hours`가 profile 안에 포함** — Agent3 요청의 `weekly_hours`는 생략 가능(생략 시 `profile.weekly_hours` 사용).
+- ✅ **`target_role` 포함** — 추천 경로명 등에 활용 가능(현재는 갭 프롬프트 컨텍스트로 사용).
+- `readiness_level`은 Agent1이 보내지 않음 → Agent3 모델에서 제거(과거 의존 제거 완료).
 
-> 코드 위치: `gap_analysis_agent.py`(강점 제외), `llm.py::_build_gap_prompt`, `models.py::ProfileDiagnosis`
+**남은 합의 사항:**
+- [ ] **`owned_skills` 표기 정합**: 사용자가 고르는 보유 스킬이 스킬DB 키와 매칭되는 표기인지(예: `"리액트"` vs `"React"`).
+  Agent3는 `normalize_skill_name`으로 보정하지만, 온보딩 선택지를 스킬DB 키에 맞추면 정확도가 오른다.
+- [ ] **`target_role` 표기 정합**: 직무명이 스킬DB `roles` 키(`"백엔드 개발자"`, `"프론트엔드 개발자"`)와 맞는지.
+
+> 코드 위치: `models.py::ProfileDiagnosis`, `llm.py::_build_gap_prompt`·`_fallback_gaps`(owned_skills 기준), `main.py::run_agent3`(weekly_hours 해석)
 
 ---
 

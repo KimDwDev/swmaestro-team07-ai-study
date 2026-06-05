@@ -18,10 +18,16 @@ def test_health():
 def test_roadmap_endpoint_accepts_agent2_rich_json():
     payload = {
         "profile": {
-            "summary": "JS 기초",
-            "strengths": ["JavaScript", "HTML/CSS"],
-            "weaknesses": ["React", "TypeScript"],
-            "readiness_level": "mid",
+            "major": "컴퓨터공학과 3학년",
+            "current_status": "재학 중",
+            "interests": ["프론트엔드 개발"],
+            "owned_skills": ["JavaScript", "HTML/CSS"],
+            "target_role": "프론트엔드 개발자",
+            "weekly_hours": 8,
+            "concern": ["프레임워크 경험이 없습니다."],
+            "summary": "JS 기초 보유, 프레임워크 미경험",
+            "strengths": ["전공 일치도"],
+            "weaknesses": ["프레임워크 경험 부족"],
         },
         "job_requirement": {
             "required_skills": ["React 컴포넌트 구현", "TypeScript 타입 안전"],

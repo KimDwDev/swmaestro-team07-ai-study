@@ -56,7 +56,7 @@ def run_roadmap_plan(state: Agent3State) -> Agent3State:
         revision_context=revision_context,
         completed_skills=state.completed_skills,
         carry_over_skills=state.carry_over_skills,
-        owned_skills=state.profile.strengths,
+        owned_skills=state.profile.owned_skills,
     )
 
     # 5. 후처리: LLM 추가 스킬 자원 보강 + verified 전파

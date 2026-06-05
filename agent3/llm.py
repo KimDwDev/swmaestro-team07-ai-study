@@ -126,9 +126,10 @@ def _build_gap_prompt(
 
 [현재 역량]
 요약: {profile.summary}
-강점: {profile.strengths}
-약점: {profile.weaknesses}
-준비수준: {profile.readiness_level}
+보유 스킬(실제 가진 기술): {profile.owned_skills}
+정성 강점(스킬명 아님): {profile.strengths}
+정성 약점(스킬명 아님): {profile.weaknesses}
+목표 직무: {profile.target_role}
 
 [목표 직무 요구역량]
 필수: {job.required_skills}
@@ -140,10 +141,11 @@ def _build_gap_prompt(
 [이전에 이월된 스킬(있으면 우선 포함)]: {carry_over_skills or []}
 
 규칙:
+- 목표 직무 요구역량 중 "보유 스킬"에 없는 기술을 부족 역량(gap)으로 도출하세요.
 - skill은 "Python", "React", "FastAPI"처럼 짧은 표준 기술명으로 쓰세요(문장 금지). 요구역량이 문장이면 핵심 기술명을 뽑아내세요.
 - priority는 필수역량이면 "high", 우대역량이면 "medium", 그 외 보조면 "low".
 - current_level은 사용자의 현재 수준("없음"|"기초"|"중급"), target_level은 직무가 요구하는 수준("기초"|"중급"|"실무").
-- 사용자가 이미 보유한 강점은 갭에 넣지 마세요.
+- "보유 스킬"에 이미 있는 기술은 갭에 넣지 마세요. (정성 강점/약점은 문맥 참고용일 뿐 스킬명이 아닙니다)
 - 최대 8개까지. 우선순위 높은 순으로 정렬하세요.
 - 아래 JSON만 반환하세요. 마크다운 코드블록 금지.
 
@@ -190,11 +192,14 @@ def _fallback_gaps(
     job: JobRequirement,
     completed_skills: Optional[list[str]],
 ) -> list[GapItem]:
-    """규칙기반 갭: (필수+우대 키워드) − (강점 ∪ 완료스킬). 표준 스킬명 추정."""
+    """규칙기반 갭: (필수+우대 키워드) − (보유 스킬 ∪ 완료스킬). 표준 스킬명 추정.
+
+    보유 기준은 profile.owned_skills(실제 스킬). strengths는 정성 개념이라 제외 기준으로 쓰지 않는다.
+    """
     from .tools import normalize_skill_name
 
     completed = {s.lower() for s in (completed_skills or [])}
-    owned = {s.lower() for s in profile.strengths} | completed
+    owned = {normalize_skill_name(s).lower() for s in profile.owned_skills} | completed
 
     # 키워드/필수/우대에서 스킬 후보 수집(키워드가 가장 스킬명에 가까움)
     required_norm = {normalize_skill_name(k) for k in job.keywords if k.strip()}
@@ -267,7 +272,7 @@ def generate_roadmap(
     """주차별 로드맵을 생성한다(LLM, 규칙기반 폴백 포함).
 
     skill_records: gap 스킬명 → lookup_skill/web_search로 노드가 미리 확보한 SkillRecord.
-    owned_skills: 사용자가 이미 보유한 스킬(profile.strengths). 재학습 주차를 막는 데 사용.
+    owned_skills: 사용자가 이미 보유한 스킬(profile.owned_skills). 재학습 주차를 막는 데 사용.
     LLM은 주차 배치·목표만 생성하고, 자원(resources)은 skill_records에서 결정론적으로 부착해
     환각 링크를 차단한다.
     """

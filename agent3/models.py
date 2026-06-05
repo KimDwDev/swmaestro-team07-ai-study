@@ -105,13 +105,30 @@ class SkillRecord(BaseModel):
 # 입력 모델 — 에이전트 1 (profile_diagnosis)
 # ─────────────────────────────────────────────────────────────
 class ProfileDiagnosis(BaseModel):
-    """에이전트1 출력. 개발 중에는 tests/fixtures JSON으로 대체한다."""
+    """에이전트1(profile_diagnosis) 출력. feature/Agent_2의 ProfileDiagnosis와 동일 스키마.
 
-    summary: str = ""
-    strengths: list[str] = Field(default_factory=list)
-    weaknesses: list[str] = Field(default_factory=list)         # 부족역량 후보
+    온보딩 8필드를 그대로 보존(major~concern)하고 LLM 정성 진단을 덧붙인다.
+    주의: strengths/weaknesses는 스킬명이 아니라 정성 개념("개발 경험 부족", "전공 일치도")이다.
+    실제 보유 스킬은 **owned_skills**이며, 갭 분석의 "보유" 기준은 이것을 쓴다.
+    weekly_hours·target_role도 이 안에서 직접 읽는다.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    # ── 온보딩 원본 보존 (에이전트1이 입력값 그대로 복사) ──
+    major: str = ""
+    current_status: str = ""
     interests: list[str] = Field(default_factory=list)
-    readiness_level: str = "low"                                # "low" | "mid" | "high"
+    owned_skills: list[str] = Field(default_factory=list)       # 실제 보유 스킬(갭 "보유" 기준)
+    target_role: str = ""
+    company_type: Optional[str] = None
+    weekly_hours: int = 0
+    concern: list[str] = Field(default_factory=list)
+
+    # ── LLM 정성 진단 ──
+    summary: str = ""
+    strengths: list[str] = Field(default_factory=list)          # 정성 개념(스킬명 아님)
+    weaknesses: list[str] = Field(default_factory=list)         # 정성 개념(스킬명 아님)
     evidence: dict[str, str] = Field(default_factory=dict)
 
 
