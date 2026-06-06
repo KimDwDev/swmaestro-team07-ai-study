@@ -20,10 +20,11 @@ USER_AGENT = (
 TIMEOUT = httpx.Timeout(12.0, connect=8.0)
 RECENT_DAYS = 365
 EXPIRED_KEYWORDS = (
-    "마감",
     "채용 종료",
     "접수 종료",
     "지원 종료",
+    "모집 종료",
+    "공고 종료",
     "closed",
     "expired",
     "no longer accepting",
@@ -32,12 +33,7 @@ EXPIRED_KEYWORDS = (
 
 def build_job_query(target_role: str, company_type: str | None) -> str:
     company = f" {company_type}" if company_type else ""
-    today = date.today()
-    return (
-        f"{target_role}{company} 채용중 채용공고 요구역량 필수기술 "
-        f"{today.year} {today.year - 1} "
-        "site:jumpit.co.kr OR site:wanted.co.kr OR site:career.programmers.co.kr"
-    )
+    return f"{target_role}{company} 채용공고"
 
 
 async def search_job_postings(query: str, max_results: int = 5) -> list[JobPostingHit]:
@@ -82,16 +78,18 @@ def _parse_duckduckgo_hits(html: str, max_results: int) -> list[JobPostingHit]:
     hits: list[JobPostingHit] = []
     seen: set[str] = set()
 
-    for result in soup.select(".result"):
-        link = result.select_one("a.result__a")
-        if link is None:
-            continue
+    links = soup.select("a.result__a") or soup.select("a[href]")
+    for link in links:
         url = _clean_duckduckgo_url(link.get("href", ""))
-        if not url or url in seen:
+        if not _looks_like_job_url(url) or url in seen:
             continue
 
         title = " ".join(link.get_text(" ", strip=True).split())
-        snippet_tag = result.select_one(".result__snippet")
+        if not title:
+            continue
+
+        result = link.find_parent(class_="result")
+        snippet_tag = result.select_one(".result__snippet") if result else None
         snippet = ""
         if snippet_tag is not None:
             snippet = " ".join(snippet_tag.get_text(" ", strip=True).split())
