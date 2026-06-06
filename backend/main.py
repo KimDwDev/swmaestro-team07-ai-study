@@ -60,7 +60,6 @@ def makeRoadMap(request: RoadmapRequest):
         request.majorAndYear.split("/")[0],
         request.currentStatus, 
         request.interests, 
-        ["파이썬"], # 현재 입력 값에는 존재하지 않아서 이야기 한번 해봐야 할 것 같아요
         request.targetJob,
         request.preferredCompanyType,
         request.availableTime,

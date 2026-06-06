@@ -5,7 +5,6 @@ class Agent1:
       major, # 전공/학년
       currentStatus, # 현재 상태
       interests, # 관심분야
-      ownedSkills, # 사용자 보유 역량 리스트
       targetJob, # 목표 직무
       preferredCompanyType, # 희망 회사 유형
       availableTime, # 준비 가능 기간/주당 시간
