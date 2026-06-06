@@ -6,7 +6,6 @@ import type {
   MessageResponse,
   RoadmapCreateRequest,
   RoadmapCreateResponse,
-  RoadmapViewResponse,
   RoadmapProgressUpdateRequest,
 } from '../types/api';
 
@@ -69,7 +68,7 @@ export const roadmapApi = {
     request<RoadmapCreateResponse>('/users/roadmap', { method: 'POST', body }),
 
   /** 로드맵 + 진행 현황 조회 — GET /api/users/roadmap */
-  get: () => request<RoadmapViewResponse>('/users/roadmap'),
+  get: () => request<RoadmapCreateResponse>('/users/roadmap'),
 
   /** 할일 체크 (진행 상황 업데이트) — PATCH /api/users/roadmap */
   updateProgress: (body: RoadmapProgressUpdateRequest) =>

@@ -13,8 +13,9 @@ import {
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import Stepper from '../components/Stepper';
+import { toRoadmapViewResponse } from '../data/mockData';
 import { roadmapApi, ApiError } from '../api/client';
-import type { RoadmapCreateRequest } from '../types/api';
+import type { RoadmapCreateRequest, RoadmapViewResponse } from '../types/api';
 import styles from './Onboarding.module.css';
 
 const MAJOR_OPTIONS = ['컴퓨터공학과', '소프트웨어학과', '전자공학과', '산업공학과', '경영학과', '기타'];
@@ -23,7 +24,7 @@ const STATUS_OPTIONS = ['학생 (취업 준비 중)', '학생 (재학 중)', '�
 const INTEREST_OPTIONS = ['AI/ML', 'Backend', 'Frontend', 'Data', 'DevOps', 'Mobile', 'Security'];
 const JOB_OPTIONS = ['AI Product Engineer', 'Backend Engineer', 'Frontend Engineer', 'Data Engineer', 'ML Engineer', 'DevOps Engineer'];
 const COMPANY_OPTIONS = ['테크 스타트업', '대기업', '중견기업', '외국계', '공공기관'];
-const TIME_OPTIONS = ['5시간 미만', '5-10시간', '10-15시간', '15-20시간', '20시간 이상'];
+const DURATION_OPTIONS = ['4주', '6주', '8주', '12주'];
 
 const CONCERN_OPTIONS = [
   '무엇을 준비해야 할지 모르겠어요',
@@ -36,7 +37,7 @@ const CONCERN_OPTIONS = [
 
 interface OnboardingProps {
   /** 로드맵 생성 완료 후 대시보드로 이동 */
-  onComplete: () => void;
+  onComplete: (data?: RoadmapViewResponse) => void;
 }
 
 export default function Onboarding({ onComplete }: OnboardingProps) {
@@ -46,7 +47,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const [interests, setInterests] = useState<string[]>(['AI/ML', 'Backend']);
   const [targetJob, setTargetJob] = useState('AI Product Engineer');
   const [preferredCompanyType, setPreferredCompanyType] = useState('테크 스타트업');
-  const [availableTime, setAvailableTime] = useState('10-15시간');
+  const [availableTime, setAvailableTime] = useState('8주');
   const [concerns, setConcerns] = useState<string[]>([
     '무엇을 준비해야 할지 모르겠어요',
     'AI/백엔드 중 고민',
@@ -78,8 +79,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     };
 
     try {
-      await roadmapApi.create(payload);
-      onComplete();
+      const response = await roadmapApi.create(payload);
+      onComplete(toRoadmapViewResponse(response, availableTime));
     } catch (err) {
       // 백엔드 미연동 상태에서도 데모를 이어갈 수 있도록 대시보드로 진행합니다.
       // 실제 배포 시에는 아래 분기를 에러 처리(토스트/안내)로 바꾸세요.
@@ -179,8 +180,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             <Select value={preferredCompanyType} options={COMPANY_OPTIONS} onChange={setPreferredCompanyType} />
           </Field>
 
-          <Field icon={<Clock size={16} />} label="준비 가능 시간 (주 평균)">
-            <Select value={availableTime} options={TIME_OPTIONS} onChange={setAvailableTime} />
+          <Field icon={<Clock size={16} />} label="준비 기간">
+            <Select value={availableTime} options={DURATION_OPTIONS} onChange={setAvailableTime} />
           </Field>
         </div>
 

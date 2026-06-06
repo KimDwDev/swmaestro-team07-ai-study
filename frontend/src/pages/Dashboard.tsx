@@ -8,41 +8,39 @@ import {
   TrendingUp,
   ArrowRight,
   Rocket,
-  Users,
-  BookOpen,
-  MessagesSquare,
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import ProgressBar from '../components/ProgressBar';
-import RadarChart from '../components/RadarChart';
 import { roadmapApi } from '../api/client';
 import type { RoadmapViewResponse } from '../types/api';
 import {
-  SKILL_LABELS,
-  SKILL_TARGETS,
-  PHASES,
-  toSkillArray,
+  getRoadmapPhases,
+  toRoadmapViewResponse,
   mockRoadmap,
   mockInitialCompletedItems,
 } from '../data/mockData';
 import styles from './Dashboard.module.css';
 
 interface DashboardProps {
+  initialData?: RoadmapViewResponse | null;
   onRestart?: () => void;
 }
 
-export default function Dashboard({ onRestart }: DashboardProps) {
-  const [data, setData] = useState<RoadmapViewResponse>(mockRoadmap);
+export default function Dashboard({ initialData, onRestart }: DashboardProps) {
+  const [data, setData] = useState<RoadmapViewResponse>(initialData ?? mockRoadmap);
   const [completed, setCompleted] = useState<Set<number>>(new Set(mockInitialCompletedItems));
+  const phases = useMemo(() => getRoadmapPhases(data.durationWeeks), [data.durationWeeks]);
 
   // 진입 시 실제 로드맵을 조회. 실패하면(미연동) 목 데이터를 그대로 사용합니다.
   useEffect(() => {
+    if (initialData) return;
+
     let alive = true;
     roadmapApi
       .get()
       .then((res) => {
         if (!alive) return;
-        setData(res);
+        setData(toRoadmapViewResponse(res));
       })
       .catch((err) => {
         console.warn('로드맵 조회 실패 — 데모 데이터를 사용합니다:', err?.message ?? err);
@@ -56,7 +54,7 @@ export default function Dashboard({ onRestart }: DashboardProps) {
   const flatItems = useMemo(() => {
     const result: { phaseIndex: number; localIndex: number; globalIndex: number; label: string }[] = [];
     let g = 0;
-    PHASES.forEach((phase, phaseIndex) => {
+    phases.forEach((phase, phaseIndex) => {
       const items = data.roadmap[phase.key];
       items.forEach((label, localIndex) => {
         result.push({ phaseIndex, localIndex, globalIndex: g, label });
@@ -64,11 +62,11 @@ export default function Dashboard({ onRestart }: DashboardProps) {
       });
     });
     return result;
-  }, [data]);
+  }, [data, phases]);
 
   const itemsByPhase = useMemo(
-    () => PHASES.map((_, i) => flatItems.filter((it) => it.phaseIndex === i)),
-    [flatItems]
+    () => phases.map((_, i) => flatItems.filter((it) => it.phaseIndex === i)),
+    [flatItems, phases]
   );
 
   const phaseStats = itemsByPhase.map((items) => {
@@ -81,7 +79,7 @@ export default function Dashboard({ onRestart }: DashboardProps) {
   const totalDone = flatItems.filter((it) => completed.has(it.globalIndex)).length;
   const overallPercent = totalItems === 0 ? 0 : Math.round((totalDone / totalItems) * 100);
 
-  const currentPhaseIndex = Math.max(0, Math.min(PHASES.length - 1, data.currentWeek - 1));
+  const currentPhaseIndex = Math.max(0, Math.min(phases.length - 1, data.currentWeek - 1));
   const currentStat = phaseStats[currentPhaseIndex] ?? { total: 0, done: 0, percent: 0 };
 
   const toggleItem = (globalIndex: number) => {
@@ -135,8 +133,8 @@ export default function Dashboard({ onRestart }: DashboardProps) {
           />
           <StatCard
             icon={<Layers size={18} />}
-            label="역량 갭"
-            value={`${data.skillGap}개 부족 역량`}
+            label="필요 역량"
+            value={`${data.skillGap}개 필요 역량`}
             action="상세 보기"
           />
           <StatCard
@@ -154,99 +152,45 @@ export default function Dashboard({ onRestart }: DashboardProps) {
           />
         </div>
 
-        <div className={styles.middleRow}>
-          {/* 역량 갭 분석 (레이더) */}
-          <section className={`card ${styles.radarCard}`}>
-            <div className={styles.cardHead}>
-              <h2 className={styles.cardTitle}>역량 갭 분석</h2>
-              <div className={styles.legend}>
-                <span className={styles.legendItem}>
-                  <i className={styles.dotCurrent} /> 현재 수준
-                </span>
-                <span className={styles.legendItem}>
-                  <i className={styles.dotTarget} /> 목표 수준
-                </span>
-              </div>
-            </div>
-            <div className={styles.radarWrap}>
-              <RadarChart
-                labels={SKILL_LABELS}
-                current={toSkillArray(data.skillGapScores)}
-                target={SKILL_TARGETS}
-                size={300}
-              />
-            </div>
-          </section>
-
-          {/* 8주 로드맵 */}
-          <section className={`card ${styles.roadmapCard}`}>
-            <div className={styles.cardHead}>
-              <h2 className={styles.cardTitle}>8주 커리어 로드맵</h2>
-            </div>
-            <div className={styles.roadmapGrid}>
-              {PHASES.map((phase, i) => {
-                const stat = phaseStats[i];
-                const items = itemsByPhase[i];
-                return (
-                  <div key={phase.key} className={styles.phaseCol}>
-                    <div className={styles.phaseRange}>{phase.range}</div>
-                    <div className={styles.phaseTitle}>{phase.title}</div>
-                    <ul className={styles.taskList}>
-                      {items.map((it) => {
-                        const done = completed.has(it.globalIndex);
-                        return (
-                          <li key={it.globalIndex}>
-                            <button
-                              type="button"
-                              className={`${styles.task} ${done ? styles.taskDone : ''}`}
-                              onClick={() => toggleItem(it.globalIndex)}
-                            >
-                              <span className={`${styles.checkbox} ${done ? styles.checkboxOn : ''}`} />
-                              <span>{it.label}</span>
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                    <div className={styles.phaseProgress}>
-                      <span className={styles.phaseProgressLabel}>진행률 {stat.percent}%</span>
-                      <ProgressBar percent={stat.percent} />
-                    </div>
+        {/* 기간별 로드맵 */}
+        <section className={`card ${styles.roadmapCard}`}>
+          <div className={styles.cardHead}>
+            <h2 className={styles.cardTitle}>{data.durationWeeks}주 커리어 로드맵</h2>
+          </div>
+          <div className={styles.roadmapGrid}>
+            {phases.map((phase, i) => {
+              const stat = phaseStats[i];
+              const items = itemsByPhase[i];
+              return (
+                <div key={phase.key} className={styles.phaseCol}>
+                  <div className={styles.phaseRange}>{phase.range}</div>
+                  <div className={styles.phaseTitle}>{phase.title}</div>
+                  <ul className={styles.taskList}>
+                    {items.map((it) => {
+                      const done = completed.has(it.globalIndex);
+                      return (
+                        <li key={it.globalIndex}>
+                          <button
+                            type="button"
+                            className={`${styles.task} ${done ? styles.taskDone : ''}`}
+                            onClick={() => toggleItem(it.globalIndex)}
+                          >
+                            <span className={`${styles.checkbox} ${done ? styles.checkboxOn : ''}`} />
+                            <span>{it.label}</span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <div className={styles.phaseProgress}>
+                    <span className={styles.phaseProgressLabel}>진행률 {stat.percent}%</span>
+                    <ProgressBar percent={stat.percent} />
                   </div>
-                );
-              })}
-            </div>
-          </section>
-        </div>
-
-        {/* 이번 단계 주요 카드 */}
-        <h2 className={styles.sectionLabel}>이번 단계 주요 카드</h2>
-        <div className={styles.actionGrid}>
-          <ActionCard
-            icon={<Rocket size={16} />}
-            label="주력 프로젝트"
-            title="AI 기반 미팅 요약 서비스"
-            action="자세히 보기"
-          />
-          <ActionCard
-            icon={<Users size={16} />}
-            label="멘토 & 팀 준비"
-            title="1:1 멘토링 미팅 준비하기"
-            action="준비하기"
-          />
-          <ActionCard
-            icon={<BookOpen size={16} />}
-            label="학습 리소스"
-            title="맞춤 학습 자료 12개"
-            action="보기"
-          />
-          <ActionCard
-            icon={<MessagesSquare size={16} />}
-            label="커뮤니티 질문"
-            title="유사 고민을 가진 동료와 소통"
-            action="바로 가기"
-          />
-        </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
       </main>
     </div>
   );
@@ -277,31 +221,6 @@ function StatCard({
       </div>
       <div className={`${styles.statValue} ${valueAccent ? styles.statValueAccent : ''}`}>{value}</div>
       {footer}
-      <button type="button" className="link-action">
-        {action} <ArrowRight size={13} />
-      </button>
-    </div>
-  );
-}
-
-function ActionCard({
-  icon,
-  label,
-  title,
-  action,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  title: string;
-  action: string;
-}) {
-  return (
-    <div className={`card ${styles.actionCard}`}>
-      <div className={styles.actionLabel}>
-        <span className={styles.actionIcon}>{icon}</span>
-        {label}
-      </div>
-      <div className={styles.actionTitle}>{title}</div>
       <button type="button" className="link-action">
         {action} <ArrowRight size={13} />
       </button>
