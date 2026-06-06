@@ -2,6 +2,12 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
 
+# 태환니 agent
+from agents.agent1.Agent1 import Agent1
+
+# 태민님 agent
+from agents.agent2.Agent2 import Agent2
+
 app = FastAPI()
 
 # 테스트 url
@@ -36,13 +42,39 @@ class RoadmapResponse(BaseModel): # 로드맵 response 모델
         response_model=RoadmapResponse
         )
 def makeRoadMap(request: RoadmapRequest):
-    print("전공 학년: ", request.majorAndYear) 
-    print("현재 상태: ", request.currentStatus)
-    print("관심 분야: ", request.interests)
-    print("목표 직무: ", request.targetJob)
-    print("희망 회사 유형: ", request.preferredCompanyType)
-    print("준비 가능 시간: ", request.availableTime)
-    print("현재 고민: ", request.concerns)
+    # request 테스트용 코드
+    # print("전공 학년: ", request.majorAndYear) 
+    # print("현재 상태: ", request.currentStatus)
+    # print("관심 분야: ", request.interests)
+    # print("목표 직무: ", request.targetJob)
+    # print("희망 회사 유형: ", request.preferredCompanyType)
+    # print("준비 가능 시간: ", request.availableTime)
+    # print("현재 고민: ", request.concerns)
+
+    # agent1 사용
+    agent1 = Agent1();
+    agent1Result = agent1.default(
+        request.targetJob, 
+        request.preferredCompanyType, 
+        10
+      )
+    # print("agent1 결과: ", agent1Result)
+
+    # agent2 사용
+    agent2 = Agent2();
+    agent2Result = agent2.default(
+        request.majorAndYear.split("/")[0],
+        request.currentStatus, 
+        request.interests, 
+        ["파이썬"], # 현재 입력 값에는 존재하지 않아서 이야기 한번 해봐야 할 것 같아요
+        request.targetJob,
+        request.preferredCompanyType,
+        request.availableTime,
+        request.concerns
+      )
+    # print("agent2 결과: ", agent2Result)
+
+    # agent3 응답
 
     return RoadmapResponse(
         recommendedPath="백엔드 개발자 로드맵",
