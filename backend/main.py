@@ -8,6 +8,9 @@ from agents.agent1.Agent1 import Agent1
 # 태민님 agent
 from agents.agent2.Agent2 import Agent2
 
+# 보라님 agent
+from agents.agent3.Agent3 import Agent3
+
 app = FastAPI()
 
 # 테스트 url
@@ -75,6 +78,8 @@ def makeRoadMap(request: RoadmapRequest):
     # print("agent2 결과: ", agent2Result)
 
     # agent3 응답
+    agent3 = Agent3();
+    agent3.default()
 
     return RoadmapResponse(
         recommendedPath="백엔드 개발자 로드맵",
