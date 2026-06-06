@@ -32,6 +32,14 @@ class Agent3:
         agent1_result = agent1_result or {}
         agent2_result = agent2_result or {}
 
+        print("\n================ [Agent3 Input Verification] ================")
+        print(f"ℹ️ 에이전트 1로부터 정성 분석 결과 수신 완료:")
+        print(f"  - 요약 (summary): {agent1_result.get('summary', '')[:60]}...")
+        print(f"  - 강점 (strengths): {agent1_result.get('strengths', [])}")
+        print(f"  - 보완점 (weaknesses): {agent1_result.get('weaknesses', [])}")
+        print(f"  - 추출된 기술 스택 (owned_skills): {agent1_result.get('owned_skills', [])}")
+        print("=============================================================\n")
+
         weekly_hours = _parse_weekly_hours(getattr(request, "availableTime", None))
         target_role = getattr(request, "targetJob", "") or ""
 
