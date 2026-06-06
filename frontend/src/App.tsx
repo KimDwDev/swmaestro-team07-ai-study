@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
+import type { RoadmapViewResponse } from './types/api';
 
 type View = 'onboarding' | 'dashboard';
 
@@ -8,9 +9,17 @@ type View = 'onboarding' | 'dashboard';
 // 실제 라우팅이 필요하면 react-router-dom 으로 /onboarding, /dashboard 를 분리하세요.
 export default function App() {
   const [view, setView] = useState<View>('onboarding');
+  const [roadmap, setRoadmap] = useState<RoadmapViewResponse | null>(null);
 
   if (view === 'onboarding') {
-    return <Onboarding onComplete={() => setView('dashboard')} />;
+    return (
+      <Onboarding
+        onComplete={(data) => {
+          if (data) setRoadmap(data);
+          setView('dashboard');
+        }}
+      />
+    );
   }
-  return <Dashboard onRestart={() => setView('onboarding')} />;
+  return <Dashboard initialData={roadmap} onRestart={() => setView('onboarding')} />;
 }

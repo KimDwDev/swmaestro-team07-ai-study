@@ -1,5 +1,5 @@
 // CareerMate API 타입 정의
-// API 명세서(2025-09-01 기준)를 그대로 옮긴 것입니다.
+// API 명세서 2차 기준 타입 정의입니다.
 
 /** 회원가입 / 로그인 공용 요청 바디 */
 export interface AuthRequest {
@@ -24,20 +24,10 @@ export interface RoadmapCreateRequest {
   targetJob: string;
   /** 희망 회사 유형 */
   preferredCompanyType: string;
-  /** 준비 가능 시간 (주 평균) */
+  /** 준비 가능 시간 (예: "10-15시간") */
   availableTime: string;
   /** 현재 고민 (복수) */
   concerns: string[];
-}
-
-/** 역량 갭 점수 (0~100) */
-export interface SkillGapScores {
-  programming: number;
-  aiMl: number;
-  systemDesign: number;
-  deploymentAndOperations: number;
-  collaborationAndCommunication: number;
-  identifiedProblem: number;
 }
 
 /** 주차별 로드맵 항목 */
@@ -51,8 +41,7 @@ export interface Roadmap {
 /** 로드맵 생성 응답 — POST /api/users/roadmap */
 export interface RoadmapCreateResponse {
   recommendedPath: string;
-  skillGap: number;
-  skillGapScores: SkillGapScores;
+  skillGaps: string[];
   roadmap: Roadmap;
 }
 
@@ -64,7 +53,7 @@ export interface RoadmapProgress {
   week7To8: number;
 }
 
-/** 로드맵 조회 응답 — GET /api/users/roadmap (생성 응답 + 진행 현황) */
+/** 로드맵 조회 응답 — GET /api/users/roadmap */
 export interface RoadmapViewResponse extends RoadmapCreateResponse {
   progress: RoadmapProgress;
   /** 현재 진행 중인 주차 단계 (1~4) */

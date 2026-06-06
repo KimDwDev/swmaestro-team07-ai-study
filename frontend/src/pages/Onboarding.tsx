@@ -13,8 +13,9 @@ import {
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import Stepper from '../components/Stepper';
+import { toRoadmapViewResponse } from '../data/mockData';
 import { roadmapApi, ApiError } from '../api/client';
-import type { RoadmapCreateRequest } from '../types/api';
+import type { RoadmapCreateRequest, RoadmapViewResponse } from '../types/api';
 import styles from './Onboarding.module.css';
 
 const MAJOR_OPTIONS = ['컴퓨터공학과', '소프트웨어학과', '전자공학과', '산업공학과', '경영학과', '기타'];
@@ -36,7 +37,7 @@ const CONCERN_OPTIONS = [
 
 interface OnboardingProps {
   /** 로드맵 생성 완료 후 대시보드로 이동 */
-  onComplete: () => void;
+  onComplete: (data?: RoadmapViewResponse) => void;
 }
 
 export default function Onboarding({ onComplete }: OnboardingProps) {
@@ -78,8 +79,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     };
 
     try {
-      await roadmapApi.create(payload);
-      onComplete();
+      const response = await roadmapApi.create(payload);
+      onComplete(toRoadmapViewResponse(response));
     } catch (err) {
       // 백엔드 미연동 상태에서도 데모를 이어갈 수 있도록 대시보드로 진행합니다.
       // 실제 배포 시에는 아래 분기를 에러 처리(토스트/안내)로 바꾸세요.
@@ -179,7 +180,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             <Select value={preferredCompanyType} options={COMPANY_OPTIONS} onChange={setPreferredCompanyType} />
           </Field>
 
-          <Field icon={<Clock size={16} />} label="준비 가능 시간 (주 평균)">
+          <Field icon={<Clock size={16} />} label="준비 가능 시간">
             <Select value={availableTime} options={TIME_OPTIONS} onChange={setAvailableTime} />
           </Field>
         </div>
