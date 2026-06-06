@@ -73,7 +73,7 @@ def makeRoadMap(request: RoadmapRequest):
     agent2Result = agent2.default(
         request.targetJob, 
         request.preferredCompanyType, 
-        10
+        4
       )
     # print("agent2 결과: ", agent2Result)
 
