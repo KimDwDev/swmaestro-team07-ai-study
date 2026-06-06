@@ -102,6 +102,8 @@ def _post_process(state: Agent3State, roadmap: Roadmap) -> None:
     - 자원이 빈 task에 record 자원을 부착(환각 링크 차단: lookup_skill 유래만).
     - covered_skills를 정규화된 task 스킬로 재계산.
     - 검증되지 않은 자원(원천 url 없음)이 섞이면 state.verified=False로 강등(절대 올리지 않음).
+      단, 스킬이 없는 활동성 항목(예: "포트폴리오 정리", "면접 준비")은 자원이 없어도
+      전역 verified를 깎지 않는다(환각이 아니라 의도된 활동이므로).
     """
     all_verified = True
     for week in roadmap.weeks:
@@ -118,7 +120,9 @@ def _post_process(state: Agent3State, roadmap: Roadmap) -> None:
                 task.resources = list(record.resources)
 
             task.verified = bool(task.resources) and all(r.verified for r in task.resources)
-            if not task.verified:
+            # 스킬 있는 항목이 검증 자원을 못 얻으면 llm-origin → 전역 강등.
+            # 스킬 없는 활동성 항목은 자원이 없어도 정상이므로 강등하지 않음.
+            if task.skill and not task.verified:
                 all_verified = False
 
         # covered_skills를 정규화 결과로 재계산(중복 제거, 순서 유지)

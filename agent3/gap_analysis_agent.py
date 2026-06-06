@@ -74,18 +74,20 @@ async def run_gap_analysis(state: Agent3State) -> Agent3State:
                 state.skill_records[prereq] = lookup_skill(prereq)
 
     # 5. 되먹임 판단 (evidence_strength=weak → Job 재요청)
+    #    에이전트2가 evidence_strength를 주지 않으면(None) job_requirement 충실도로 추론한다.
+    effective_strength = _effective_evidence_strength(job)
     needs_rerun = False
     rerun_reason = None
-    if job.evidence_strength == EvidenceStrength.weak and state.rerun_count < MAX_RERUN:
+    if effective_strength == EvidenceStrength.weak and state.rerun_count < MAX_RERUN:
         needs_rerun = True
         rerun_reason = (
-            "job_requirement evidence_strength=weak: 공고 근거가 약해 필수역량 재추출 필요"
+            "job_requirement 근거 약함(필수역량·키워드 부족) → 필수역량 재추출 필요"
         )
 
     # 6. GapAnalysis 조립
     gap_analysis = GapAnalysis(
         gaps=enriched,
-        job_evidence_strength=job.evidence_strength,
+        job_evidence_strength=effective_strength,
         needs_rerun=needs_rerun,
         rerun_reason=rerun_reason,
     )
@@ -102,8 +104,9 @@ async def run_gap_analysis(state: Agent3State) -> Agent3State:
         state,
         "gap_analysis",
         input_summary=(
-            f"강점 {len(state.profile.strengths)}개 vs 필수 {len(job.required_skills)}개, "
-            f"evidence={job.evidence_strength.value}"
+            f"보유 {len(state.profile.owned_skills)}개 vs 필수 {len(job.required_skills)}개, "
+            f"evidence={effective_strength.value}"
+            + ("(추론)" if job.evidence_strength is None else "")
         ),
         decision="rerun_job" if needs_rerun else "skip_rerun",
         tool_called=tool_called,
@@ -113,6 +116,20 @@ async def run_gap_analysis(state: Agent3State) -> Agent3State:
         ),
     )
     return state
+
+
+def _effective_evidence_strength(job) -> EvidenceStrength:
+    """job_requirement의 근거 강도를 결정한다.
+
+    에이전트2가 evidence_strength를 명시하면 그 값을 쓰고, 주지 않으면(None) 추론한다.
+    추론 규칙: 필수역량 + 키워드 신호가 2개 미만이면 근거 부실(weak), 그 외 strong.
+    (Agent2가 보통 여러 역량을 반환하므로 대부분 strong → 불필요한 재요청 없음.
+     거의 빈 응답일 때만 weak로 잡아 재요청 가치를 살린다.)
+    """
+    if job.evidence_strength is not None:
+        return job.evidence_strength
+    signal = len(job.required_skills) + len(job.keywords)
+    return EvidenceStrength.weak if signal < 2 else EvidenceStrength.strong
 
 
 async def _enrich_unknown_skill(state: Agent3State, skill: str) -> SkillRecord:

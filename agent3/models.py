@@ -149,7 +149,8 @@ class JobRequirement(BaseModel):
     preferred_skills: list[str] = Field(default_factory=list)
     required_experience: list[str] = Field(default_factory=list)
     keywords: list[str] = Field(default_factory=list)           # 스킬명 추출 힌트
-    evidence_strength: EvidenceStrength = EvidenceStrength.weak
+    # 에이전트2가 주지 않을 수 있는 값. None이면 Agent3가 데이터 충실도로 추론한다.
+    evidence_strength: Optional[EvidenceStrength] = None
     source: str = "role_inference"
 
 

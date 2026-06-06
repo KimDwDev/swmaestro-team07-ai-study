@@ -43,6 +43,28 @@ def test_gap_no_rerun_when_exhausted(profile_frontend):
     assert st.needs_rerun is False  # rerun_count >= MAX_RERUN
 
 
+def test_gap_derives_strong_when_evidence_absent(profile_frontend):
+    # evidence_strength 미제공 + 충분한 근거(필수+키워드 다수) → strong 추론 → 재요청 없음
+    job = JobRequirement(
+        required_skills=["React 구현", "TypeScript"],
+        keywords=["React", "TypeScript", "상태관리"],
+    )  # evidence_strength 없음
+    st = Agent3State(profile=profile_frontend, job_requirement=job, weekly_hours=8)
+    st = _run(run_gap_analysis(st))
+    assert job.evidence_strength is None  # 모델 기본 None
+    assert st.gap_analysis.job_evidence_strength.value == "strong"
+    assert st.needs_rerun is False
+
+
+def test_gap_derives_weak_when_evidence_absent_and_sparse(profile_frontend):
+    # evidence_strength 미제공 + 근거 거의 없음 → weak 추론 → 재요청
+    job = JobRequirement(required_skills=[], keywords=[])  # 빈 응답
+    st = Agent3State(profile=profile_frontend, job_requirement=job, weekly_hours=8, rerun_count=0)
+    st = _run(run_gap_analysis(st))
+    assert st.gap_analysis.job_evidence_strength.value == "weak"
+    assert st.needs_rerun is True
+
+
 def test_gap_unknown_skill_web_enrichment(monkeypatch, profile_frontend):
     """DB-miss 스킬은 web_search로 보강 — 네트워크 대신 stub 사용 (Rust는 스킬DB에 없음)."""
     from agent3.models import SearchHit
