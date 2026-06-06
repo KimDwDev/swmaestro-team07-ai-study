@@ -14,7 +14,7 @@ import ProgressBar from '../components/ProgressBar';
 import { roadmapApi } from '../api/client';
 import type { RoadmapViewResponse } from '../types/api';
 import {
-  getRoadmapPhases,
+  PHASES,
   toRoadmapViewResponse,
   mockRoadmap,
   mockInitialCompletedItems,
@@ -29,7 +29,6 @@ interface DashboardProps {
 export default function Dashboard({ initialData, onRestart }: DashboardProps) {
   const [data, setData] = useState<RoadmapViewResponse>(initialData ?? mockRoadmap);
   const [completed, setCompleted] = useState<Set<number>>(new Set(mockInitialCompletedItems));
-  const phases = useMemo(() => getRoadmapPhases(data.durationWeeks), [data.durationWeeks]);
 
   // 진입 시 실제 로드맵을 조회. 실패하면(미연동) 목 데이터를 그대로 사용합니다.
   useEffect(() => {
@@ -54,7 +53,7 @@ export default function Dashboard({ initialData, onRestart }: DashboardProps) {
   const flatItems = useMemo(() => {
     const result: { phaseIndex: number; localIndex: number; globalIndex: number; label: string }[] = [];
     let g = 0;
-    phases.forEach((phase, phaseIndex) => {
+    PHASES.forEach((phase, phaseIndex) => {
       const items = data.roadmap[phase.key];
       items.forEach((label, localIndex) => {
         result.push({ phaseIndex, localIndex, globalIndex: g, label });
@@ -62,11 +61,11 @@ export default function Dashboard({ initialData, onRestart }: DashboardProps) {
       });
     });
     return result;
-  }, [data, phases]);
+  }, [data]);
 
   const itemsByPhase = useMemo(
-    () => phases.map((_, i) => flatItems.filter((it) => it.phaseIndex === i)),
-    [flatItems, phases]
+    () => PHASES.map((_, i) => flatItems.filter((it) => it.phaseIndex === i)),
+    [flatItems]
   );
 
   const phaseStats = itemsByPhase.map((items) => {
@@ -79,7 +78,7 @@ export default function Dashboard({ initialData, onRestart }: DashboardProps) {
   const totalDone = flatItems.filter((it) => completed.has(it.globalIndex)).length;
   const overallPercent = totalItems === 0 ? 0 : Math.round((totalDone / totalItems) * 100);
 
-  const currentPhaseIndex = Math.max(0, Math.min(phases.length - 1, data.currentWeek - 1));
+  const currentPhaseIndex = Math.max(0, Math.min(PHASES.length - 1, data.currentWeek - 1));
   const currentStat = phaseStats[currentPhaseIndex] ?? { total: 0, done: 0, percent: 0 };
 
   const toggleItem = (globalIndex: number) => {
@@ -134,7 +133,7 @@ export default function Dashboard({ initialData, onRestart }: DashboardProps) {
           <StatCard
             icon={<Layers size={18} />}
             label="필요 역량"
-            value={`${data.skillGap}개 필요 역량`}
+            value={`${data.skillGaps.length}개 필요 역량`}
             action="상세 보기"
           />
           <StatCard
@@ -152,13 +151,13 @@ export default function Dashboard({ initialData, onRestart }: DashboardProps) {
           />
         </div>
 
-        {/* 기간별 로드맵 */}
+        {/* 8주 로드맵 */}
         <section className={`card ${styles.roadmapCard}`}>
           <div className={styles.cardHead}>
-            <h2 className={styles.cardTitle}>{data.durationWeeks}주 커리어 로드맵</h2>
+            <h2 className={styles.cardTitle}>8주 커리어 로드맵</h2>
           </div>
           <div className={styles.roadmapGrid}>
-            {phases.map((phase, i) => {
+            {PHASES.map((phase, i) => {
               const stat = phaseStats[i];
               const items = itemsByPhase[i];
               return (

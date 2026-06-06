@@ -1,5 +1,5 @@
 // CareerMate API 타입 정의
-// 백엔드 FastAPI PR 기준 API 타입 정의입니다.
+// API 명세서 2차 기준 타입 정의입니다.
 
 /** 회원가입 / 로그인 공용 요청 바디 */
 export interface AuthRequest {
@@ -24,7 +24,7 @@ export interface RoadmapCreateRequest {
   targetJob: string;
   /** 희망 회사 유형 */
   preferredCompanyType: string;
-  /** 준비 기간 (예: "8주") */
+  /** 준비 가능 시간 (예: "10-15시간") */
   availableTime: string;
   /** 현재 고민 (복수) */
   concerns: string[];
@@ -53,14 +53,8 @@ export interface RoadmapProgress {
   week7To8: number;
 }
 
-/** 화면에서 사용하는 로드맵 데이터 (POST 응답 + 프론트 기본값으로 구성) */
-export interface RoadmapViewResponse {
-  recommendedPath: string;
-  skillGaps: string[];
-  skillGap: number;
-  /** 전체 로드맵 기간(주) */
-  durationWeeks: number;
-  roadmap: Roadmap;
+/** 로드맵 조회 응답 — GET /api/users/roadmap */
+export interface RoadmapViewResponse extends RoadmapCreateResponse {
   progress: RoadmapProgress;
   /** 현재 진행 중인 주차 단계 (1~4) */
   currentWeek: number;
