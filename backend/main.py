@@ -2,10 +2,10 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
 
-# 태환니 agent
+# 태민님 agent
 from agents.agent1.Agent1 import Agent1
 
-# 태민님 agent
+# 태환님 agent
 from agents.agent2.Agent2 import Agent2
 
 # 보라님 agent
@@ -57,15 +57,6 @@ def makeRoadMap(request: RoadmapRequest):
     # agent1 사용
     agent1 = Agent1();
     agent1Result = agent1.default(
-        request.targetJob, 
-        request.preferredCompanyType, 
-        10
-      )
-    # print("agent1 결과: ", agent1Result)
-
-    # agent2 사용
-    agent2 = Agent2();
-    agent2Result = agent2.default(
         request.majorAndYear.split("/")[0],
         request.currentStatus, 
         request.interests, 
@@ -74,6 +65,15 @@ def makeRoadMap(request: RoadmapRequest):
         request.preferredCompanyType,
         request.availableTime,
         request.concerns
+      )
+    # print("agent1 결과: ", agent1Result)
+
+    # agent2 사용
+    agent2 = Agent2();
+    agent2Result = agent2.default(
+        request.targetJob, 
+        request.preferredCompanyType, 
+        10
       )
     # print("agent2 결과: ", agent2Result)
 
