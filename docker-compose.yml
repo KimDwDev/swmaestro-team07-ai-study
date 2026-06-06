@@ -2,6 +2,14 @@ services:
   # gateway
 
   # frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:80"
+    restart: unless-stopped
 
   # backend
   backend:
