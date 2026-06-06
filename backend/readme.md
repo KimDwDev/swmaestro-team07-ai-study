@@ -14,9 +14,15 @@
 
 - REST API 제공
 
-### 실행 방법
+### 실행 방법 (리눅스 환경)
 
-(추후 추가 예정)
+- python3 -m venv myenv 
+
+- source ./myenv/bin/activate
+
+- pip install -r requirements.txt
+
+- uvicorn main:app --reload
 
 ### API 문서 
 
