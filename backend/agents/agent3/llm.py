@@ -24,19 +24,29 @@ from typing import Optional
 
 
 def _load_env() -> None:
-    """agent3/.env(우선) → 프로젝트 루트 .env 순으로 환경변수를 로드한다.
+    """환경변수를 .env에서 로드한다(이미 설정된 값은 유지, override=False).
 
+    탐색 순서:
+      1) CWD 기준 .env (uvicorn을 backend/에서 띄우면 backend/.env)
+      2) 이 패키지 상위 경로의 .env (agents/.env, backend/.env)
+    도커에선 compose의 env_file로 이미 주입되므로 이 로딩은 보조 수단이다.
     python-dotenv가 없거나 파일이 없어도 조용히 넘어간다(throw 금지).
-    이미 설정된 환경변수는 .env가 덮어쓰지 않는다(override=False).
     """
     try:
-        from dotenv import load_dotenv
+        from dotenv import find_dotenv, load_dotenv
     except Exception:
         return
-    here = Path(__file__).parent
-    for candidate in (here / ".env", here.parent / ".env"):
+    # 1) CWD 기준 자동 탐색
+    found = find_dotenv(usecwd=True)
+    if found:
+        load_dotenv(found, override=False)
+    # 2) 패키지 상위 경로(backend/.env 등) 보조 탐색
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        candidate = parent / ".env"
         if candidate.exists():
             load_dotenv(candidate, override=False)
+            break
 
 
 _load_env()

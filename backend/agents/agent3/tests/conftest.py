@@ -31,21 +31,21 @@ def load_fixture(name: str) -> dict:
 
 @pytest.fixture
 def profile_frontend():
-    from agent3.models import ProfileDiagnosis
+    from agents.agent3.models import ProfileDiagnosis
 
     return ProfileDiagnosis(**load_fixture("profile_frontend.json"))
 
 
 @pytest.fixture
 def profile_backend():
-    from agent3.models import ProfileDiagnosis
+    from agents.agent3.models import ProfileDiagnosis
 
     return ProfileDiagnosis(**load_fixture("profile_backend.json"))
 
 
 @pytest.fixture
 def job_frontend():
-    from agent3.models import JobRequirement
+    from agents.agent3.models import JobRequirement
 
     return JobRequirement(
         required_skills=["React로 화면을 컴포넌트 기반으로 구현하는 능력", "TypeScript로 타입 안전한 코드 작성"],

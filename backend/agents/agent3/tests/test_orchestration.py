@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import asyncio
 
-from agent3.constants import MAX_REVISIONS
-from agent3.main import run_agent3
-from agent3.models import (
+from agents.agent3.constants import MAX_REVISIONS
+from agents.agent3.pipeline import run_agent3
+from agents.agent3.models import (
     CriticVerdict,
     EpisodicMemory,
     MemoryStatus,

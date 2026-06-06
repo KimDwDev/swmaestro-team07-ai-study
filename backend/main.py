@@ -23,6 +23,7 @@ class RoadmapRequest(BaseModel): # 로드맵 생성 request 모델
     majorAndYear: str              # 전공/학년
     currentStatus: str             # 현재 상태
     interests: List[str]           # 관심 분야
+    ownedSkills: List[str] = []    # 보유 스킬 (Agent3 갭 계산용, 선택)
     targetJob: str                 # 목표 직무
     preferredCompanyType: str      # 희망 회사 유형
     availableTime: str             # 준비 가능 시간
@@ -76,37 +77,12 @@ def makeRoadMap(request: RoadmapRequest):
       )
     # print("agent2 결과: ", agent2Result)
 
-    # agent3 응답
+    # agent3 사용 (갭 분석 + 주차별 로드맵 생성)
     agent3 = Agent3();
-    agent3.default()
+    agent3Result = agent3.default(request, agent1Result, agent2Result)
 
     return RoadmapResponse(
-        recommendedPath="백엔드 개발자 로드맵",
-        skillGaps=[
-            "자료구조와 알고리즘 학습이 필요합니다.",
-            "데이터베이스 설계 경험이 부족합니다.",
-            "배포 및 운영 경험을 보완하면 좋습니다."
-        ],
-        roadmap=Roadmap(
-            week1To2=[
-                "Python 기본 문법 복습",
-                "FastAPI 기본 구조 학습",
-                "REST API 개념 정리"
-            ],
-            week3To4=[
-                "데이터베이스 연동 학습",
-                "SQL 기본 문법 학습",
-                "간단한 CRUD API 구현"
-            ],
-            week5To6=[
-                "인증/인가 기능 구현",
-                "JWT 기반 로그인 구현",
-                "예외 처리 및 유효성 검증 추가"
-            ],
-            week7To8=[
-                "Docker를 이용한 배포 환경 구성",
-                "AWS 또는 클라우드 배포 실습",
-                "프로젝트 README 정리"
-            ]
-        )
+        recommendedPath=agent3Result["recommendedPath"],
+        skillGaps=agent3Result["skillGaps"],
+        roadmap=Roadmap(**agent3Result["roadmap"]),
     )

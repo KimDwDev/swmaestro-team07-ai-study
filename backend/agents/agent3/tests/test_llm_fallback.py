@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from agent3.constants import FORBIDDEN_PHRASES, MAX_WEEKS, MIN_WEEKS
-from agent3.llm import extract_gaps, generate_roadmap, suggest_total_weeks
-from agent3.models import CriticVerdict, JobRequirement
-from agent3.roadmap_critic import check_roadmap
-from agent3.tools import lookup_skill
+from agents.agent3.constants import FORBIDDEN_PHRASES, MAX_WEEKS, MIN_WEEKS
+from agents.agent3.llm import extract_gaps, generate_roadmap, suggest_total_weeks
+from agents.agent3.models import CriticVerdict, JobRequirement
+from agents.agent3.roadmap_critic import check_roadmap
+from agents.agent3.tools import lookup_skill
 
 
 def test_fallback_gaps_exclude_strengths(profile_frontend, job_frontend):

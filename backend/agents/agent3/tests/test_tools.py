@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import asyncio
 
-from agent3.models import SkillStatus, SourceOrigin
-from agent3.tools import (
+from agents.agent3.models import SkillStatus, SourceOrigin
+from agents.agent3.tools import (
     list_skills_for_role,
     lookup_skill,
     normalize_role_name,
@@ -100,7 +100,7 @@ def test_web_search_empty_query():
 
 
 def test_budget_cache_hit_no_count_increase():
-    from agent3.models import SearchHit
+    from agents.agent3.models import SearchHit
 
     cache = {"q": [SearchHit(title="t", url="https://x.com")]}
     hits, cnt, deg = asyncio.run(web_search_budgeted("q", cache, 3))

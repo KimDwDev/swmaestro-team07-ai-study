@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from agent3.llm import TARGET_PHASES, build_phases
-from agent3.models import ResourceItem, SourceOrigin, TaskItem, WeekPlan
+from agents.agent3.llm import TARGET_PHASES, build_phases
+from agents.agent3.models import ResourceItem, SourceOrigin, TaskItem, WeekPlan
 
 
 def _week(idx, phase, skills):

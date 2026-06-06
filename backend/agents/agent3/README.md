@@ -1,7 +1,17 @@
 # Agent3 — Gap Analysis & Roadmap Planner
 
-CareerMate의 `gap_analysis` · `roadmap_plan` · `roadmap_critic` 노드를 독립 실행할 수 있는 FastAPI MVP입니다.
+CareerMate의 `gap_analysis` · `roadmap_plan` · `roadmap_critic`을 담당하는 백엔드 에이전트 모듈입니다.
 에이전트 1(프로필 진단)·에이전트 2(직무 요구역량) 결과를 받아 **부족 역량을 진단**하고 **주차별 학습 로드맵**을 생성한 뒤, **4종 체크리스트로 자가 검증**합니다.
+
+> **백엔드 통합 완료**: 이제 독립 서버(`:8003`)가 아니라 `backend/agents/agent3/`의 모듈입니다.
+> `backend/main.py`가 `Agent3.default(request, agent1Result, agent2Result)`로 호출하고,
+> 결과를 `RoadmapResponse`(recommendedPath/skillGaps/week1To2..week7To8)로 반환합니다.
+> 호출 래퍼는 [Agent3.py](Agent3.py), 오케스트레이션은 [pipeline.py](pipeline.py) 참고.
+>
+> **실행**: `cd backend && uvicorn main:app --port 8000` (API 키는 `backend/.env`)
+> **테스트**: `cd backend && PYTHONPATH=. python -m pytest agents/agent3/tests -q`
+>
+> 아래 본문 중 독립 서버(`uvicorn agent3.main:app :8003`) 관련 설명은 통합 전 기준이라 더 이상 유효하지 않습니다.
 
 > 설계 근거: [docs/02-agent-graph.md](../docs/02-agent-graph.md), [docs/03-agent-contracts.md](../docs/03-agent-contracts.md), [docs/04-tools-skill-db.md](../docs/04-tools-skill-db.md), [docs/05-reflection-critic.md](../docs/05-reflection-critic.md)
 

@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import asyncio
 
-from agent3.gap_analysis_agent import run_gap_analysis
-from agent3.models import JobRequirement, SkillStatus, SourceOrigin
-from agent3.roadmap_plan_agent import run_roadmap_plan
-from agent3.state import Agent3State
+from agents.agent3.gap_analysis_agent import run_gap_analysis
+from agents.agent3.models import JobRequirement, SkillStatus, SourceOrigin
+from agents.agent3.roadmap_plan_agent import run_roadmap_plan
+from agents.agent3.state import Agent3State
 
 
 def _run(coro):
@@ -67,12 +67,12 @@ def test_gap_derives_weak_when_evidence_absent_and_sparse(profile_frontend):
 
 def test_gap_unknown_skill_web_enrichment(monkeypatch, profile_frontend):
     """DB-miss 스킬은 web_search로 보강 — 네트워크 대신 stub 사용 (Rust는 스킬DB에 없음)."""
-    from agent3.models import SearchHit
+    from agents.agent3.models import SearchHit
 
     async def fake_web_search(query, k=5):
         return [SearchHit(title="Rust 공식", url="https://doc.rust-lang.org/book/", source="rust-lang.org")]
 
-    monkeypatch.setattr("agent3.tools.web_search", fake_web_search)
+    monkeypatch.setattr("agents.agent3.tools.web_search", fake_web_search)
 
     job = JobRequirement(
         required_skills=["Rust로 시스템 프로그래밍"], keywords=["Rust"], evidence_strength="strong"
@@ -97,7 +97,7 @@ def test_gap_unknown_skill_no_web_lowers_verified(monkeypatch, profile_frontend)
     async def empty_web_search(query, k=5):
         return []
 
-    monkeypatch.setattr("agent3.tools.web_search", empty_web_search)
+    monkeypatch.setattr("agents.agent3.tools.web_search", empty_web_search)
 
     job = JobRequirement(
         required_skills=["Rust"], keywords=["Rust"], evidence_strength="strong"

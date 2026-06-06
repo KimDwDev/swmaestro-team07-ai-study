@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from agent3.models import (
+from agents.agent3.models import (
     CriticVerdict,
     GapItem,
     PriorityLevel,
@@ -15,8 +15,8 @@ from agent3.models import (
     ViolationType,
     WeekPlan,
 )
-from agent3.roadmap_critic import check_roadmap
-from agent3.tools import lookup_skill
+from agents.agent3.roadmap_critic import check_roadmap
+from agents.agent3.tools import lookup_skill
 
 RECORDS = {
     s: lookup_skill(s)
