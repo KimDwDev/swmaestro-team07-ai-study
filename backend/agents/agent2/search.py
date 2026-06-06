@@ -37,6 +37,11 @@ def build_job_query(target_role: str, company_type: str | None) -> str:
 
 
 async def search_job_postings(query: str, max_results: int = 5) -> list[JobPostingHit]:
+    naver_html = await _fetch_naver_html(query)
+    hits = _parse_naver_hits(naver_html, max_results) if naver_html else []
+    if hits:
+        return hits
+
     recent_html = await _fetch_duckduckgo_html(query, recent=True)
     hits = _parse_duckduckgo_hits(recent_html, max_results) if recent_html else []
     if hits:
@@ -52,8 +57,7 @@ async def search_job_postings(query: str, max_results: int = 5) -> list[JobPosti
     if hits:
         return hits
 
-    naver_html = await _fetch_naver_html(query)
-    return _parse_naver_hits(naver_html, max_results) if naver_html else []
+    return []
 
 
 async def _fetch_duckduckgo_html(query: str, recent: bool) -> str:

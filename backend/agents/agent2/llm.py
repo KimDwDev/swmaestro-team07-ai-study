@@ -361,6 +361,7 @@ def _is_valid_company_name(name: str) -> bool:
         "백엔드",
         "프론트",
         "데이터",
+        "data engineer",
         "개발",
         "엔지니어",
         "developer",
@@ -380,6 +381,8 @@ def _is_valid_company_name(name: str) -> bool:
         1 <= len(name.strip()) <= 40
         and normalized not in {item.lower() for item in platform_names}
         and not any(fragment in normalized for fragment in invalid_fragments)
+        and "(" not in name
+        and ")" not in name
     )
 
 
