@@ -41,6 +41,7 @@ class RoadmapResponse(BaseModel): # 로드맵 response 모델
     recommendedPath: str
     skillGaps: List[str]
     roadmap: Roadmap
+    companies : List[str]
 
 @app.post(
         "/api/users/roadmap",
@@ -95,4 +96,5 @@ async def makeRoadMap(
         recommendedPath=agent3Result["recommendedPath"],
         skillGaps=agent3Result["skillGaps"],
         roadmap=Roadmap(**agent3Result["roadmap"]),
+        companies=agent2Result["companies"], # 회사 부분 추가
     )
