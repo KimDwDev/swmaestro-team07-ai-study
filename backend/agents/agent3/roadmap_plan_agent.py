@@ -23,7 +23,7 @@ from .state import Agent3State, append_trace
 from .tools import lookup_skill, normalize_skill_name
 
 
-def run_roadmap_plan(state: Agent3State) -> Agent3State:
+async def run_roadmap_plan(state: Agent3State) -> Agent3State:
     """roadmap_plan 노드 본문. async 그래프와의 호출 균일성을 위해 동기로 둔다
     (내부 LLM 호출은 동기 OpenAI 클라이언트, web_search는 호출하지 않음 —
      갭 스킬 자원은 6단계 gap_analysis가 이미 확보)."""
@@ -48,7 +48,7 @@ def run_roadmap_plan(state: Agent3State) -> Agent3State:
     revision_context = _build_revision_context(state)
 
     # 4. (LLM) 로드맵 생성
-    roadmap = generate_roadmap(
+    roadmap = await generate_roadmap(
         gaps,
         state.weekly_hours,
         state.skill_records,
@@ -57,7 +57,7 @@ def run_roadmap_plan(state: Agent3State) -> Agent3State:
         completed_skills=state.completed_skills,
         carry_over_skills=state.carry_over_skills,
         owned_skills=state.profile.owned_skills,
-    )
+    ) # 비동기로 수정을 진행하였습니다.
 
     # 5. 후처리: LLM 추가 스킬 자원 보강 + verified 전파
     _post_process(state, roadmap)

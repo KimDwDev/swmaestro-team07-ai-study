@@ -65,7 +65,7 @@ async def run_agent3(
     state = await run_gap_analysis(state)
 
     # 3. roadmap_plan → roadmap_critic (revise 루프)
-    state = run_roadmap_plan(state)
+    state = await run_roadmap_plan(state)
     state = run_roadmap_critic(state)
     while (
         state.critic_report is not None
