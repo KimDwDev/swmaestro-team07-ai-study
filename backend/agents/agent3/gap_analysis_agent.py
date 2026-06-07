@@ -38,7 +38,7 @@ async def run_gap_analysis(state: Agent3State) -> Agent3State:
     job = state.job_requirement
 
     # 1. (LLM) 부족 역량 추출
-    gaps = extract_gaps(
+    gaps = await extract_gaps(
         state.profile,
         job,
         completed_skills=state.completed_skills,
