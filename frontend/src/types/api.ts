@@ -51,6 +51,8 @@ export interface RoadmapCreateResponse {
   recommendedPath: string;
   skillGaps: string[];
   roadmap: Roadmap;
+  /** Agent2 결과 기반 적합 회사 */
+  companies: string[];
 }
 
 /** 주차별 완료 개수 */
