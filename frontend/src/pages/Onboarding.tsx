@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   GraduationCap,
   Activity,
@@ -6,6 +6,7 @@ import {
   Target,
   Building2,
   Clock,
+  FileText,
   Sparkles,
   Plus,
   Check,
@@ -19,7 +20,7 @@ import type { RoadmapCreateRequest, RoadmapViewResponse } from '../types/api';
 import styles from './Onboarding.module.css';
 
 const MAJOR_OPTIONS = ['컴퓨터공학과', '소프트웨어학과', '전자공학과', '산업공학과', '경영학과', '기타'];
-const YEAR_OPTIONS = ['1학년', '2학년', '3학년', '4학년', '졸업예정', '졸업'];
+const YEAR_OPTIONS = ['3학년', '4학년', '졸업예정', '졸업'];
 const STATUS_OPTIONS = ['학생 (취업 준비 중)', '학생 (재학 중)', '취업준비생', '인턴', '신입 (사회초년생)'];
 const INTEREST_OPTIONS = ['AI/ML', 'Backend', 'Frontend', 'Data', 'DevOps', 'Mobile', 'Security'];
 const JOB_OPTIONS = ['AI Product Engineer', 'Backend Engineer', 'Frontend Engineer', 'Data Engineer', 'ML Engineer', 'DevOps Engineer'];
@@ -48,6 +49,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const [targetJob, setTargetJob] = useState('AI Product Engineer');
   const [preferredCompanyType, setPreferredCompanyType] = useState('테크 스타트업');
   const [availableTime, setAvailableTime] = useState('10-15시간');
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [concerns, setConcerns] = useState<string[]>([
     '무엇을 준비해야 할지 모르겠어요',
     'AI/백엔드 중 고민',
@@ -57,12 +59,18 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const [interestPickerOpen, setInterestPickerOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
 
   const toggleInterest = (value: string) =>
     setInterests((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
 
   const toggleConcern = (value: string) =>
     setConcerns((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
+
+  const clearPdfFile = () => {
+    setPdfFile(null);
+    if (pdfInputRef.current) pdfInputRef.current.value = '';
+  };
 
   const handleSubmit = async () => {
     setError(null);
@@ -79,7 +87,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     };
 
     try {
-      const response = await roadmapApi.create(payload);
+      const response = await roadmapApi.create(pdfFile ? { request: payload, pdfFile } : payload);
       onComplete(toRoadmapViewResponse(response));
     } catch (err) {
       // 백엔드 미연동 상태에서도 데모를 이어갈 수 있도록 대시보드로 진행합니다.
@@ -121,6 +129,25 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         </div>
 
         <div className={styles.grid}>
+          <Field icon={<FileText size={16} />} label="자기소개서 pdf 파일 업로드" className={styles.fileField}>
+            <label className={styles.fileInputWrap}>
+              <input
+                ref={pdfInputRef}
+                type="file"
+                accept="application/pdf,.pdf"
+                className={styles.fileInput}
+                onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)}
+              />
+              <span className={styles.fileButton}>파일 선택</span>
+              <span className={styles.fileName}>{pdfFile ? pdfFile.name : '선택된 파일 없음'}</span>
+            </label>
+            {pdfFile && (
+              <button type="button" className={styles.fileClear} onClick={clearPdfFile}>
+                파일 제거
+              </button>
+            )}
+          </Field>
+
           <Field icon={<GraduationCap size={16} />} label="전공 / 학년">
             <div className={styles.inlineSelects}>
               <Select value={major} options={MAJOR_OPTIONS} onChange={setMajor} />
@@ -223,9 +250,19 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
 
 /* ───────── 보조 컴포넌트 ───────── */
 
-function Field({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+function Field({
+  icon,
+  label,
+  children,
+  className = '',
+}: {
+  icon: React.ReactNode;
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div className={`card ${styles.field}`}>
+    <div className={`card ${styles.field} ${className}`}>
       <div className={styles.fieldLabel}>
         <span className={styles.fieldIcon}>{icon}</span>
         {label}

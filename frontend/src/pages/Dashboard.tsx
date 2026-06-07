@@ -6,7 +6,6 @@ import {
   Layers,
   CircleCheck,
   TrendingUp,
-  ArrowRight,
   Rocket,
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
@@ -29,6 +28,7 @@ interface DashboardProps {
 export default function Dashboard({ initialData, onRestart }: DashboardProps) {
   const [data, setData] = useState<RoadmapViewResponse>(initialData ?? mockRoadmap);
   const [completed, setCompleted] = useState<Set<number>>(new Set(mockInitialCompletedItems));
+  const [skillModalOpen, setSkillModalOpen] = useState(false);
 
   // 진입 시 실제 로드맵을 조회. 실패하면(미연동) 목 데이터를 그대로 사용합니다.
   useEffect(() => {
@@ -87,10 +87,10 @@ export default function Dashboard({ initialData, onRestart }: DashboardProps) {
       if (next.has(globalIndex)) next.delete(globalIndex);
       else next.add(globalIndex);
 
-      // 진행 상황을 백엔드에 반영 (PATCH). 미연동이면 조용히 무시.
-      roadmapApi
-        .updateProgress({ completedItems: Array.from(next).sort((a, b) => a - b) })
-        .catch((err) => console.warn('진행 상황 저장 실패:', err?.message ?? err));
+      // TODO: PATCH /api/users/roadmap 구현 후 진행 상황 저장을 다시 연결합니다.
+      // roadmapApi
+      //   .updateProgress({ completedItems: Array.from(next).sort((a, b) => a - b) })
+      //   .catch((err) => console.warn('진행 상황 저장 실패:', err?.message ?? err));
 
       return next;
     });
@@ -128,25 +128,23 @@ export default function Dashboard({ initialData, onRestart }: DashboardProps) {
             label="추천 경로"
             value={data.recommendedPath}
             valueAccent
-            action="경로 자세히 보기"
           />
           <StatCard
             icon={<Layers size={18} />}
             label="필요 역량"
             value={`${data.skillGaps.length}개 필요 역량`}
             action="상세 보기"
+            onAction={() => setSkillModalOpen(true)}
           />
           <StatCard
             icon={<CircleCheck size={18} />}
             label="이번 주 목표"
             value={`${currentStat.done} / ${currentStat.total} 완료`}
-            action="목표 보기"
           />
           <StatCard
             icon={<TrendingUp size={18} />}
             label="전체 진행률"
             value={`${overallPercent}%`}
-            action="자세히 보기"
             footer={<ProgressBar percent={overallPercent} variant="primary" />}
           />
         </div>
@@ -191,6 +189,39 @@ export default function Dashboard({ initialData, onRestart }: DashboardProps) {
           </div>
         </section>
       </main>
+
+      {skillModalOpen && (
+        <div className={styles.modalBackdrop} role="presentation" onClick={() => setSkillModalOpen(false)}>
+          <section
+            className={styles.modal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="skill-gap-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.modalHead}>
+              <h2 id="skill-gap-title" className={styles.modalTitle}>
+                필요 역량 상세
+              </h2>
+              <button
+                type="button"
+                className={styles.modalClose}
+                aria-label="닫기"
+                onClick={() => setSkillModalOpen(false)}
+              >
+                x
+              </button>
+            </div>
+            <ul className={styles.skillList}>
+              {data.skillGaps.map((skillGap) => (
+                <li key={skillGap} className={styles.skillItem}>
+                  {skillGap}
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
@@ -202,13 +233,15 @@ function StatCard({
   label,
   value,
   action,
+  onAction,
   valueAccent,
   footer,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
-  action: string;
+  action?: string;
+  onAction?: () => void;
   valueAccent?: boolean;
   footer?: React.ReactNode;
 }) {
@@ -220,9 +253,11 @@ function StatCard({
       </div>
       <div className={`${styles.statValue} ${valueAccent ? styles.statValueAccent : ''}`}>{value}</div>
       {footer}
-      <button type="button" className="link-action">
-        {action} <ArrowRight size={13} />
-      </button>
+      {action && (
+        <button type="button" className="link-action" onClick={onAction}>
+          {action}
+        </button>
+      )}
     </div>
   );
 }
