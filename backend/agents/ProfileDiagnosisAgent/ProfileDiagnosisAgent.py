@@ -4,7 +4,7 @@ import io
 import pypdf
 from pydantic import BaseModel, Field
 from typing import Optional, List, Union
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 from dotenv import load_dotenv
 
 # 로컬 .env 파일로부터 환경 변수 자동 로드
@@ -155,10 +155,10 @@ class Agent1:
         if not api_key:
             raise ValueError("환경 변수 UPSTAGE_API_KEY가 설정되지 않았습니다.")
             
-        client = OpenAI(
+        client = AsyncOpenAI(
             api_key=api_key,
             base_url="https://api.upstage.ai/v1"
-        )
+        ) # 비동기로 실행하기 위해서 기존의 OpenAI에서 변경하였습니다
         
         # 2. 직무 및 회사 유형에 맞는 JSON 기준서 파일 로드
         cleaned_job = user_input.targetJob.lower().replace(" ", "").replace("_", "")
@@ -213,7 +213,7 @@ class Agent1:
         
         # 4. [API 호출 진행] 기준 대비 사용자 개별 맞춤 채점 및 owned_skills 추출
         print(f"💡 [Agent1] 기준 대비 사용자 프로필/이력서 정밀 갭 분석 중... (입력 데이터 약 {len(user_prompt)}자)")
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model="solar-pro3",
             messages=[
                 {"role": "system", "content": formatted_system_prompt},
@@ -222,7 +222,7 @@ class Agent1:
             response_format={"type": "json_object"},
             temperature=0.1,
             timeout=90.0
-        )
+        ) # 비동기로 변경
         
         output_text = response.choices[0].message.content
         parsed_diagnosis = json.loads(output_text)

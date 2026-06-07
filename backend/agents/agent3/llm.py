@@ -80,9 +80,9 @@ def _get_client():
     if not api_key:
         return None
     try:
-        from openai import OpenAI
+        from openai import AsyncOpenAI
 
-        return OpenAI(api_key=api_key, base_url=UPSTAGE_BASE_URL)
+        return AsyncOpenAI(api_key=api_key, base_url=UPSTAGE_BASE_URL)
     except Exception:
         return None
 
@@ -90,7 +90,7 @@ def _get_client():
 # ═════════════════════════════════════════════════════════════
 # 1. gap 추출 — profile vs job_requirement
 # ═════════════════════════════════════════════════════════════
-def extract_gaps(
+async def extract_gaps(
     profile: ProfileDiagnosis,
     job_requirement: JobRequirement,
     completed_skills: Optional[list[str]] = None,
@@ -109,7 +109,7 @@ def extract_gaps(
         prompt = _build_gap_prompt(
             profile, job_requirement, completed_skills, carry_over_skills
         )
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model=DEFAULT_SOLAR_MODEL,
             messages=[
                 {"role": "system", "content": "Return valid JSON only."},
@@ -269,7 +269,7 @@ def _horizon_for(total_weeks: int) -> RoadmapHorizon:
     return RoadmapHorizon.weeks_8
 
 
-def generate_roadmap(
+async def generate_roadmap(
     gaps: list[GapItem],
     weekly_hours: int,
     skill_records: dict[str, SkillRecord],
@@ -301,7 +301,7 @@ def generate_roadmap(
             gaps, weekly_hours, skill_records, total_weeks,
             revision_context, carry_over_skills, known_skills,
         )
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model=DEFAULT_SOLAR_MODEL,
             messages=[
                 {"role": "system", "content": "Return valid JSON only."},
