@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import logging
+import json
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -13,7 +13,6 @@ from .models import Agent2Request, HealthResponse, JobRequirementOutput
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
-logger = logging.getLogger("uvicorn.error")
 
 app = FastAPI(title="CareerMate Agent2", version="0.1.0")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -39,5 +38,7 @@ async def job_requirement(request: Agent2Request) -> JobRequirementOutput:
         required_experience=result.required_experience,
         keywords=result.keywords,
     )
-    logger.info("Agent2 result: %s", output.model_dump(mode="json"))
+    print("\n================ [Agent2 Job Requirement Output] ================")
+    print(json.dumps(output.model_dump(mode="json"), ensure_ascii=False, indent=2))
+    print("=================================================================\n")
     return output

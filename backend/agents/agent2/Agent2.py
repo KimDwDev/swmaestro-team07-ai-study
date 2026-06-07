@@ -1,11 +1,8 @@
 # 태환님 agent
-import logging
+import json
 
 from .job_requirement_agent import run_agent2
 from .models import Agent2Request
-
-
-logger = logging.getLogger("uvicorn.error")
 
 
 class Agent2:
@@ -25,5 +22,7 @@ class Agent2:
             "required_experience": result.required_experience,
             "keywords": result.keywords,
         }
-        logger.info("Agent2 result: %s", output)
+        print("\n================ [Agent2 Job Requirement Output] ================")
+        print(json.dumps(output, ensure_ascii=False, indent=2))
+        print("=================================================================\n")
         return output
