@@ -43,4 +43,4 @@ export function toRoadmapViewResponse(
  * 전역 인덱스 = 모든 주차 항목을 week1To2 → week7To8 순서로 0부터 나열했을 때의 위치.
  * PATCH /api/users/roadmap 의 completedItems 와 동일한 규칙입니다.
  */
-export const mockInitialCompletedItems: number[] = [0, 1, 2, 4, 5, 8];
+export const mockInitialCompletedItems: number[] = [];
