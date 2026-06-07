@@ -6,14 +6,14 @@ from .models import Agent2Request
 
 
 class Agent2:
-    def default(self, targetJob, preferredCompanyType, maxResults):
+    async def default(self, targetJob, preferredCompanyType, maxResults):
         request = Agent2Request(
             target_role=targetJob,
             company_type=preferredCompanyType,
             max_results=maxResults,
         )
 
-        result = asyncio.run(run_agent2(request))
+        result = await run_agent2(request) # 비동기로 처리 하면서 이 부분에 대해서 생각을 해야 할 것 같아요
 
         return {
             "companies": [company.name for company in result.companies],

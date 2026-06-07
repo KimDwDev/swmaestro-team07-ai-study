@@ -1,6 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, File, Form, UploadFile
 from pydantic import BaseModel
 from typing import List
+import json
 
 # 태민님 agent
 from agents.agent1.Agent1 import Agent1
@@ -45,7 +46,10 @@ class RoadmapResponse(BaseModel): # 로드맵 response 모델
         "/api/users/roadmap",
         response_model=RoadmapResponse
         )
-def makeRoadMap(request: RoadmapRequest):
+async def makeRoadMap(
+        pdfFile: UploadFile = File(...),
+        requestDatas: str = Form(...)
+    ):
     # request 테스트용 코드
     # print("전공 학년: ", request.majorAndYear) 
     # print("현재 상태: ", request.currentStatus)
@@ -55,22 +59,28 @@ def makeRoadMap(request: RoadmapRequest):
     # print("준비 가능 시간: ", request.availableTime)
     # print("현재 고민: ", request.concerns)
 
+    # 데이터 파싱
+    request = RoadmapRequest(**json.loads(requestDatas)); # JSON 데이터
+
+    pdfBytes = await pdfFile.read(); # pdf byte 데이터
+
     # agent1 사용
     agent1 = Agent1();
-    agent1Result = agent1.default(
-        request.majorAndYear.split("/")[0],
+    agent1Result = await agent1.default(
+        request.majorAndYear,
         request.currentStatus, 
         request.interests, 
         request.targetJob,
         request.preferredCompanyType,
         request.availableTime,
-        request.concerns
+        request.concerns,
+        pdfBytes # 추가 부분
       )
     # print("agent1 결과: ", agent1Result)
 
     # agent2 사용
     agent2 = Agent2();
-    agent2Result = agent2.default(
+    agent2Result = await agent2.default(
         request.targetJob, 
         request.preferredCompanyType, 
         10
@@ -79,7 +89,7 @@ def makeRoadMap(request: RoadmapRequest):
 
     # agent3 사용 (갭 분석 + 주차별 로드맵 생성)
     agent3 = Agent3();
-    agent3Result = agent3.default(request, agent1Result, agent2Result)
+    agent3Result = await agent3.default(request, agent1Result, agent2Result)
 
     return RoadmapResponse(
         recommendedPath=agent3Result["recommendedPath"],
