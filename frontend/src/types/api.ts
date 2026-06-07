@@ -1,5 +1,5 @@
 // CareerMate API 타입 정의
-// API 명세서 2차 기준 타입 정의입니다.
+// API 명세서 3차 기준 타입 정의입니다.
 
 /** 회원가입 / 로그인 공용 요청 바디 */
 export interface AuthRequest {
@@ -28,6 +28,12 @@ export interface RoadmapCreateRequest {
   availableTime: string;
   /** 현재 고민 (복수) */
   concerns: string[];
+}
+
+/** 로드맵 생성 요청 파일 필드 */
+export interface RoadmapCreatePayload {
+  request: RoadmapCreateRequest;
+  pdfFile?: File | null;
 }
 
 /** 주차별 로드맵 항목 */

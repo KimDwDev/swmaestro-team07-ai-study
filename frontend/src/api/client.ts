@@ -5,6 +5,7 @@ import type {
   AuthRequest,
   MessageResponse,
   RoadmapCreateRequest,
+  RoadmapCreatePayload,
   RoadmapCreateResponse,
   RoadmapViewResponse,
   RoadmapProgressUpdateRequest,
@@ -27,15 +28,20 @@ interface RequestOptions {
   body?: unknown;
 }
 
+function isFormData(body: unknown): body is FormData {
+  return typeof FormData !== 'undefined' && body instanceof FormData;
+}
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body } = options;
+  const formData = isFormData(body);
 
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: formData ? undefined : { 'Content-Type': 'application/json' },
     // 로그인 시 발급되는 token 쿠키를 주고받기 위해 필요
     credentials: 'include',
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: body !== undefined ? (formData ? body : JSON.stringify(body)) : undefined,
   });
 
   if (!res.ok) {
@@ -63,10 +69,24 @@ export const authApi = {
     request<MessageResponse>('/users/login', { method: 'POST', body }),
 };
 
+function createRoadmapFormData({ request, pdfFile }: RoadmapCreatePayload): FormData {
+  const formData = new FormData();
+  formData.append('request', JSON.stringify(request));
+  if (pdfFile) formData.append('pdfFile', pdfFile);
+  return formData;
+}
+
 export const roadmapApi = {
   /** 로드맵 생성 — POST /api/users/roadmap */
-  create: (body: RoadmapCreateRequest) =>
-    request<RoadmapCreateResponse>('/users/roadmap', { method: 'POST', body }),
+  create: (body: RoadmapCreateRequest | RoadmapCreatePayload) => {
+    if ('request' in body) {
+      return request<RoadmapCreateResponse>('/users/roadmap', {
+        method: 'POST',
+        body: createRoadmapFormData(body),
+      });
+    }
+    return request<RoadmapCreateResponse>('/users/roadmap', { method: 'POST', body });
+  },
 
   /** 로드맵 + 진행 현황 조회 — GET /api/users/roadmap */
   get: () => request<RoadmapViewResponse>('/users/roadmap'),

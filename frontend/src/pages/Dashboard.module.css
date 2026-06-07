@@ -244,3 +244,72 @@
   color: var(--text-muted);
   margin-bottom: 6px;
 }
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.28);
+}
+
+.modal {
+  width: min(460px, 100%);
+  border-radius: var(--radius-md);
+  background: #fff;
+  box-shadow: var(--shadow-pop);
+  border: 1px solid var(--border);
+  padding: 20px;
+}
+
+.modalHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.modalClose {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--text-muted);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.modalClose:hover {
+  color: var(--primary);
+  background: var(--primary-soft);
+  border-color: transparent;
+}
+
+.skillList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skillItem {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: #fafbfd;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
