@@ -20,7 +20,7 @@ _WEEK_KEYS = ["week1To2", "week3To4", "week5To6", "week7To8"]
 
 
 class Agent3:
-    def default(self, request, agent1_result: dict, agent2_result: dict) -> dict:
+    async def default(self, request, agent1_result: dict, agent2_result: dict) -> dict:
         """request(온보딩) + agent1_result + agent2_result → flat 로드맵 dict.
 
         Args:
@@ -58,7 +58,7 @@ class Agent3:
             # evidence_strength는 에이전트2가 주지 않음 → Agent3가 데이터로 추론
         )
 
-        state = asyncio.run(run_agent3(profile, job, weekly_hours=weekly_hours))
+        state = await run_agent3(profile, job, weekly_hours=weekly_hours) # 태환님과 마찬가지로 비동기로 바뀌면서 이 부분을 수정하는게 좋아보여요
         return _to_roadmap_response(state, target_role)
 
 

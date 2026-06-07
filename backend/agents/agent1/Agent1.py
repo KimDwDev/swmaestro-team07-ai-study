@@ -64,7 +64,7 @@ Your output MUST be a valid JSON object matching the ProfileDiagnosis schema.
 
 # 3. 호출할 클래스 인터페이스 정의
 class Agent1:
-    def default(
+    async def default(
         self,
         major: str,
         currentStatus: str,
@@ -72,7 +72,8 @@ class Agent1:
         targetJob: str,
         preferredCompanyType: str,
         availableTime: str,
-        concerns: list[str]
+        concerns: list[str],
+        pdfBytes : bytes # pdf byte데이터 추가 부분
     ) -> dict:
         """
         백엔드 팀원의 main.py 호출 규격과 100% 연동되는 동기식 에이전트 1 메인 실행 메서드입니다.
