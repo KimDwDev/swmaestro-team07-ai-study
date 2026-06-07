@@ -136,6 +136,62 @@
   margin: 0;
 }
 
+.companyCard {
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.companyHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.companyIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #ecfeff;
+  color: #0e7490;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.companyTitle {
+  margin: 0 0 3px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.companySub {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+
+.companyList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.companyChip {
+  padding: 8px 12px;
+  border-radius: var(--radius-pill);
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.companyEmpty {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
 /* 로드맵 */
 .roadmapCard {
   padding-bottom: 20px;
