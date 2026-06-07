@@ -93,7 +93,6 @@ async def extract_with_solar(
             companies=_complete_companies(
                 _company_evidence(data.get("companies"), postings, max_companies),
                 postings,
-                company_type,
                 max_companies,
             ),
             required_skills=_as_list(data.get("required_skills")),
@@ -157,13 +156,15 @@ def _company_evidence(value: object, postings: list[JobPostingHit], max_companie
             if isinstance(item, dict):
                 name = str(item.get("name") or "").strip()
                 url = str(item.get("url") or "").strip() or None
-                if name and _is_valid_company_name(name) and name not in seen:
-                    companies.append(CompanyEvidence(name=name, url=url))
+                posting_url = _find_company_posting_url(name, url, postings)
+                if name and posting_url and _is_valid_company_name(name) and name not in seen:
+                    companies.append(CompanyEvidence(name=name, url=posting_url))
                     seen.add(name)
             elif isinstance(item, str) and item.strip():
                 name = item.strip()
-                if _is_valid_company_name(name) and name not in seen:
-                    companies.append(CompanyEvidence(name=name, url=None))
+                posting_url = _find_company_posting_url(name, None, postings)
+                if posting_url and _is_valid_company_name(name) and name not in seen:
+                    companies.append(CompanyEvidence(name=name, url=posting_url))
                     seen.add(name)
             if len(companies) >= max_companies:
                 break
@@ -224,7 +225,7 @@ def _fallback_extract(
         found = _role_defaults(target_role)
 
     return JobRequirement(
-        companies=_complete_companies(_companies_from_postings(postings, max_companies), postings, company_type, max_companies),
+        companies=_complete_companies(_companies_from_postings(postings, max_companies), postings, max_companies),
         required_skills=[_skill_sentence(skill, target_role) for skill in found[:7]],
         preferred_skills=[_skill_sentence(skill, target_role) for skill in found[7:10]],
         required_experience=_fallback_experience(target_role, bool(postings)),
@@ -275,27 +276,33 @@ def _companies_from_postings(postings: list[JobPostingHit], max_companies: int =
 def _complete_companies(
     companies: list[CompanyEvidence],
     postings: list[JobPostingHit],
-    company_type: str | None,
     max_companies: int,
 ) -> list[CompanyEvidence]:
     completed: list[CompanyEvidence] = []
     seen: set[str] = set()
 
     for company in companies + _companies_from_postings(postings, max_companies):
-        if company.name and _is_valid_company_name(company.name) and company.name not in seen:
-            completed.append(company)
+        posting_url = _find_company_posting_url(company.name, company.url, postings)
+        if company.name and posting_url and _is_valid_company_name(company.name) and company.name not in seen:
+            completed.append(CompanyEvidence(name=company.name, url=posting_url))
             seen.add(company.name)
         if len(completed) >= max_companies:
             return completed
 
-    for name in _fallback_company_names(company_type):
-        if name and _is_valid_company_name(name) and name not in seen:
-            completed.append(CompanyEvidence(name=name, url=None))
-            seen.add(name)
-        if len(completed) >= max_companies:
-            break
-
     return completed
+
+
+def _find_company_posting_url(name: str, url: str | None, postings: list[JobPostingHit]) -> str | None:
+    if not name:
+        return None
+
+    normalized_name = name.lower()
+    for posting in postings:
+        posting_text = " ".join([posting.title, posting.snippet, posting.fetched_text]).lower()
+        if normalized_name in posting_text:
+            return posting.url
+
+    return None
 
 
 def _fallback_company_names(company_type: str | None) -> list[str]:

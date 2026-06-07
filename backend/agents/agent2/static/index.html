@@ -114,6 +114,7 @@
             body: JSON.stringify(payload),
           });
           const data = await response.json();
+          console.log("Agent2 result", data);
           output.textContent = JSON.stringify(data, null, 2);
         } catch (error) {
           output.textContent = String(error);

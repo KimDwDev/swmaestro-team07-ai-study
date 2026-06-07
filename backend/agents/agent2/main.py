@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -12,6 +13,7 @@ from .models import Agent2Request, HealthResponse, JobRequirementOutput
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
+logger = logging.getLogger("uvicorn.error")
 
 app = FastAPI(title="CareerMate Agent2", version="0.1.0")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -30,10 +32,12 @@ async def health() -> HealthResponse:
 @app.post("/agent2/job-requirement", response_model=JobRequirementOutput)
 async def job_requirement(request: Agent2Request) -> JobRequirementOutput:
     result = await run_agent2(request)
-    return JobRequirementOutput(
+    output = JobRequirementOutput(
         companies=result.companies,
         required_skills=result.required_skills,
         preferred_skills=result.preferred_skills,
         required_experience=result.required_experience,
         keywords=result.keywords,
     )
+    logger.info("Agent2 result: %s", output.model_dump(mode="json"))
+    return output

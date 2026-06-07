@@ -1,8 +1,11 @@
 # 태환님 agent
-import asyncio
+import logging
 
 from .job_requirement_agent import run_agent2
 from .models import Agent2Request
+
+
+logger = logging.getLogger("uvicorn.error")
 
 
 class Agent2:
@@ -15,10 +18,12 @@ class Agent2:
 
         result = await run_agent2(request) # 비동기로 처리 하면서 이 부분에 대해서 생각을 해야 할 것 같아요
 
-        return {
+        output = {
             "companies": [company.name for company in result.companies],
             "required_skills": result.required_skills,
             "preferred_skills": result.preferred_skills,
             "required_experience": result.required_experience,
             "keywords": result.keywords,
         }
+        logger.info("Agent2 result: %s", output)
+        return output
