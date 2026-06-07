@@ -28,12 +28,14 @@ export interface RoadmapCreateRequest {
   availableTime: string;
   /** 현재 고민 (복수) */
   concerns: string[];
+  /** 보유 역량 (선택, PDF 분석 결과와 함께 백엔드에서 활용) */
+  ownedSkills?: string[];
 }
 
 /** 로드맵 생성 요청 파일 필드 */
 export interface RoadmapCreatePayload {
-  request: RoadmapCreateRequest;
-  pdfFile?: File | null;
+  requestDatas: RoadmapCreateRequest;
+  pdfFile: File;
 }
 
 /** 주차별 로드맵 항목 */

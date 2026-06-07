@@ -4,7 +4,6 @@
 import type {
   AuthRequest,
   MessageResponse,
-  RoadmapCreateRequest,
   RoadmapCreatePayload,
   RoadmapCreateResponse,
   RoadmapViewResponse,
@@ -69,24 +68,20 @@ export const authApi = {
     request<MessageResponse>('/users/login', { method: 'POST', body }),
 };
 
-function createRoadmapFormData({ request, pdfFile }: RoadmapCreatePayload): FormData {
+function createRoadmapFormData({ requestDatas, pdfFile }: RoadmapCreatePayload): FormData {
   const formData = new FormData();
-  formData.append('request', JSON.stringify(request));
-  if (pdfFile) formData.append('pdfFile', pdfFile);
+  formData.append('requestDatas', JSON.stringify(requestDatas));
+  formData.append('pdfFile', pdfFile);
   return formData;
 }
 
 export const roadmapApi = {
   /** 로드맵 생성 — POST /api/users/roadmap */
-  create: (body: RoadmapCreateRequest | RoadmapCreatePayload) => {
-    if ('request' in body) {
-      return request<RoadmapCreateResponse>('/users/roadmap', {
-        method: 'POST',
-        body: createRoadmapFormData(body),
-      });
-    }
-    return request<RoadmapCreateResponse>('/users/roadmap', { method: 'POST', body });
-  },
+  create: (body: RoadmapCreatePayload) =>
+    request<RoadmapCreateResponse>('/users/roadmap', {
+      method: 'POST',
+      body: createRoadmapFormData(body),
+    }),
 
   /** 로드맵 + 진행 현황 조회 — GET /api/users/roadmap */
   get: () => request<RoadmapViewResponse>('/users/roadmap'),

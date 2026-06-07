@@ -74,6 +74,12 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
 
   const handleSubmit = async () => {
     setError(null);
+
+    if (!pdfFile) {
+      setError('자기소개서 PDF 파일을 업로드해주세요.');
+      return;
+    }
+
     setSubmitting(true);
 
     const payload: RoadmapCreateRequest = {
@@ -87,7 +93,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     };
 
     try {
-      const response = await roadmapApi.create(pdfFile ? { request: payload, pdfFile } : payload);
+      const response = await roadmapApi.create({ requestDatas: payload, pdfFile });
       onComplete(toRoadmapViewResponse(response));
     } catch (err) {
       // 백엔드 미연동 상태에서도 데모를 이어갈 수 있도록 대시보드로 진행합니다.
@@ -129,12 +135,13 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         </div>
 
         <div className={styles.grid}>
-          <Field icon={<FileText size={16} />} label="자기소개서 pdf 파일 업로드" className={styles.fileField}>
+          <Field icon={<FileText size={16} />} label="자기소개서 PDF 파일 업로드" className={styles.fileField} required>
             <label className={styles.fileInputWrap}>
               <input
                 ref={pdfInputRef}
                 type="file"
                 accept="application/pdf,.pdf"
+                required
                 className={styles.fileInput}
                 onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)}
               />
@@ -255,17 +262,20 @@ function Field({
   label,
   children,
   className = '',
+  required = false,
 }: {
   icon: React.ReactNode;
   label: string;
   children: React.ReactNode;
   className?: string;
+  required?: boolean;
 }) {
   return (
     <div className={`card ${styles.field} ${className}`}>
       <div className={styles.fieldLabel}>
         <span className={styles.fieldIcon}>{icon}</span>
         {label}
+        {required && <span className={styles.requiredBadge}>필수</span>}
       </div>
       {children}
     </div>
