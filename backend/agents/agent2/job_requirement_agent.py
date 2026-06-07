@@ -13,7 +13,7 @@ from .search import (
 async def run_agent2(request: Agent2Request) -> JobRequirement:
     query = build_job_query(request.target_role, request.company_type)
     postings = await _search_with_fallbacks(request, query)
-    postings = await enrich_posting_texts(postings, max_pages=min(3, request.max_results))
+    postings = await enrich_posting_texts(postings, max_pages=request.max_results)
     postings = filter_recent_postings(postings)
     postings = _filter_role_relevant(postings, request.target_role)
     return await extract_with_solar(
@@ -21,16 +21,27 @@ async def run_agent2(request: Agent2Request) -> JobRequirement:
         company_type=request.company_type,
         search_query=query,
         postings=postings,
+        max_companies=request.max_results,
     )
 
 
 async def _search_with_fallbacks(request: Agent2Request, primary_query: str):
+    english_role = _english_role_hint(request.target_role)
+    english_company = _english_company_hint(request.company_type)
+    company = request.company_type or ""
     queries = [
         primary_query,
-        f"{request.target_role} {request.company_type or ''} 채용공고 요구역량",
-        f"{request.target_role} {request.company_type or ''} 최근 1년 채용공고",
-        f"{request.target_role} 채용 원티드 점핏 프로그래머스",
-        f"{_english_role_hint(request.target_role)} {_english_company_hint(request.company_type)} jobs Korea required skills 2026",
+        f"{request.target_role} {company} 채용공고",
+        f"{request.target_role} {company} 채용",
+        f"{request.target_role} {company} 개발자 채용",
+        f"{request.target_role} 채용 원티드",
+        f"{request.target_role} 채용 점핏",
+        f"{request.target_role} 채용 프로그래머스",
+        f"site:wanted.co.kr/wd {request.target_role} {company}",
+        f"site:jumpit.co.kr/position {request.target_role} {company}",
+        f"site:career.programmers.co.kr/job_positions {request.target_role} {company}",
+        f"{english_role} {english_company} Korea jobs",
+        f"{english_role} Korea Python FastAPI jobs",
     ]
     seen_urls: set[str] = set()
     postings = []

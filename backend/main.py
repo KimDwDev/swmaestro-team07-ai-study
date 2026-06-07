@@ -83,7 +83,7 @@ async def makeRoadMap(
     agent2Result = await agent2.default(
         request.targetJob, 
         request.preferredCompanyType, 
-        10
+        4
       )
     # print("agent2 결과: ", agent2Result)
 
