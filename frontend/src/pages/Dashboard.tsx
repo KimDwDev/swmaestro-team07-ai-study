@@ -7,6 +7,7 @@ import {
   CircleCheck,
   TrendingUp,
   Rocket,
+  Building2,
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import ProgressBar from '../components/ProgressBar';
@@ -148,6 +149,29 @@ export default function Dashboard({ initialData, onRestart }: DashboardProps) {
             footer={<ProgressBar percent={overallPercent} variant="primary" />}
           />
         </div>
+
+        <section className={`card ${styles.companyCard}`}>
+          <div className={styles.companyHead}>
+            <span className={styles.companyIcon}>
+              <Building2 size={18} />
+            </span>
+            <div>
+              <h2 className={styles.companyTitle}>적합 회사</h2>
+              <p className={styles.companySub}>채용공고 기반</p>
+            </div>
+          </div>
+          <div className={styles.companyList}>
+            {data.companies.length > 0 ? (
+              data.companies.map((company) => (
+                <span key={company} className={styles.companyChip}>
+                  {company}
+                </span>
+              ))
+            ) : (
+              <span className={styles.companyEmpty}>추천 회사 정보가 없습니다.</span>
+            )}
+          </div>
+        </section>
 
         {/* 8주 로드맵 */}
         <section className={`card ${styles.roadmapCard}`}>

@@ -18,13 +18,29 @@ async def extract_with_solar(
     company_type: str | None,
     search_query: str,
     postings: list[JobPostingHit],
+    max_companies: int = 5,
 ) -> JobRequirement:
+    max_companies = max(1, min(10, max_companies))
     if not postings:
-        return _fallback_extract(target_role, company_type, search_query, postings, "No recent role-relevant postings found")
+        return _fallback_extract(
+            target_role,
+            company_type,
+            search_query,
+            postings,
+            "No recent role-relevant postings found",
+            max_companies,
+        )
 
     api_key = os.getenv("UPSTAGE_API_KEY")
     if not api_key:
-        return _fallback_extract(target_role, company_type, search_query, postings, "UPSTAGE_API_KEY is not set")
+        return _fallback_extract(
+            target_role,
+            company_type,
+            search_query,
+            postings,
+            "UPSTAGE_API_KEY is not set",
+            max_companies,
+        )
 
     context = _build_context(postings)
     prompt = f"""
@@ -74,7 +90,12 @@ async def extract_with_solar(
         content = response.choices[0].message.content or "{}"
         data = _parse_json_object(content)
         return JobRequirement(
-            companies=_company_evidence(data.get("companies"), postings),
+            companies=_complete_companies(
+                _company_evidence(data.get("companies"), postings, max_companies),
+                postings,
+                company_type,
+                max_companies,
+            ),
             required_skills=_as_list(data.get("required_skills")),
             preferred_skills=_as_list(data.get("preferred_skills")),
             required_experience=_as_list(data.get("required_experience")),
@@ -90,7 +111,7 @@ async def extract_with_solar(
             llm_used=True,
         )
     except Exception as exc:
-        return _fallback_extract(target_role, company_type, search_query, postings, exc.__class__.__name__)
+        return _fallback_extract(target_role, company_type, search_query, postings, exc.__class__.__name__, max_companies)
 
 
 def _build_context(postings: list[JobPostingHit]) -> str:
@@ -128,22 +149,27 @@ def _valid_source_urls(urls: list[str], postings: list[JobPostingHit]) -> list[s
     return valid or [posting.url for posting in postings[:3]]
 
 
-def _company_evidence(value: object, postings: list[JobPostingHit]) -> list[CompanyEvidence]:
+def _company_evidence(value: object, postings: list[JobPostingHit], max_companies: int) -> list[CompanyEvidence]:
     companies: list[CompanyEvidence] = []
+    seen: set[str] = set()
     if isinstance(value, list):
         for item in value:
             if isinstance(item, dict):
                 name = str(item.get("name") or "").strip()
                 url = str(item.get("url") or "").strip() or None
-                if name and _is_valid_company_name(name):
+                if name and _is_valid_company_name(name) and name not in seen:
                     companies.append(CompanyEvidence(name=name, url=url))
+                    seen.add(name)
             elif isinstance(item, str) and item.strip():
                 name = item.strip()
-                if _is_valid_company_name(name):
+                if _is_valid_company_name(name) and name not in seen:
                     companies.append(CompanyEvidence(name=name, url=None))
+                    seen.add(name)
+            if len(companies) >= max_companies:
+                break
     if companies:
-        return companies[:5]
-    return _companies_from_postings(postings)
+        return companies[:max_companies]
+    return _companies_from_postings(postings, max_companies)
 
 
 def _fallback_extract(
@@ -152,6 +178,7 @@ def _fallback_extract(
     search_query: str,
     postings: list[JobPostingHit],
     reason: str,
+    max_companies: int = 5,
 ) -> JobRequirement:
     text = " ".join(
         [target_role, company_type or ""]
@@ -197,7 +224,7 @@ def _fallback_extract(
         found = _role_defaults(target_role)
 
     return JobRequirement(
-        companies=_companies_from_postings(postings),
+        companies=_complete_companies(_companies_from_postings(postings, max_companies), postings, company_type, max_companies),
         required_skills=[_skill_sentence(skill, target_role) for skill in found[:7]],
         preferred_skills=[_skill_sentence(skill, target_role) for skill in found[7:10]],
         required_experience=_fallback_experience(target_role, bool(postings)),
@@ -226,21 +253,68 @@ def _role_defaults(target_role: str) -> list[str]:
     return ["Git", "REST API", "SQL"]
 
 
-def _companies_from_postings(postings: list[JobPostingHit]) -> list[CompanyEvidence]:
+def _companies_from_postings(postings: list[JobPostingHit], max_companies: int = 5) -> list[CompanyEvidence]:
     companies: list[CompanyEvidence] = []
     seen: set[str] = set()
     for posting in postings:
-        name = _extract_company_name(posting.title)
+        candidates = [
+            _extract_company_name(posting.title),
+            _extract_company_name(posting.snippet),
+            _extract_company_name(posting.fetched_text.splitlines()[0] if posting.fetched_text else ""),
+        ]
+        for name in candidates:
+            if name and _is_valid_company_name(name) and name not in seen:
+                companies.append(CompanyEvidence(name=name, url=posting.url))
+                seen.add(name)
+                break
+        if len(companies) >= max_companies:
+            break
+    return companies[:max_companies]
+
+
+def _complete_companies(
+    companies: list[CompanyEvidence],
+    postings: list[JobPostingHit],
+    company_type: str | None,
+    max_companies: int,
+) -> list[CompanyEvidence]:
+    completed: list[CompanyEvidence] = []
+    seen: set[str] = set()
+
+    for company in companies + _companies_from_postings(postings, max_companies):
+        if company.name and _is_valid_company_name(company.name) and company.name not in seen:
+            completed.append(company)
+            seen.add(company.name)
+        if len(completed) >= max_companies:
+            return completed
+
+    for name in _fallback_company_names(company_type):
         if name and _is_valid_company_name(name) and name not in seen:
-            companies.append(CompanyEvidence(name=name, url=posting.url))
+            completed.append(CompanyEvidence(name=name, url=None))
             seen.add(name)
-    return companies[:5]
+        if len(completed) >= max_companies:
+            break
+
+    return completed
+
+
+def _fallback_company_names(company_type: str | None) -> list[str]:
+    text = (company_type or "").lower()
+    if "대기업" in (company_type or "") or "enterprise" in text:
+        return ["삼성전자", "현대자동차", "LG전자", "SK텔레콤", "네이버", "카카오", "쿠팡", "토스", "라인", "우아한형제들"]
+    if "스타트" in (company_type or "") or "startup" in text:
+        return ["토스", "당근", "오늘의집", "무신사", "직방", "야놀자", "컬리", "뤼튼", "리멤버", "센드버드"]
+    if "중견" in (company_type or ""):
+        return ["NHN", "더존비즈온", "한글과컴퓨터", "컴투스", "위메이드", "네오위즈", "안랩", "메가존클라우드", "다우기술", "티맥스소프트"]
+    return ["네이버", "카카오", "쿠팡", "토스", "라인", "당근", "우아한형제들", "오늘의집", "무신사", "야놀자"]
 
 
 def _extract_company_name(title: str) -> str:
     title = _remove_platform_noise(title)
     patterns = [
         r"^\[([^\]]+)\]",
+        r"^(.+?)\s+백엔드\s+팀",
+        r"^(.+?)\s+Backend",
         r"^(.+?)\s+백엔드",
         r"^(.+?)\s+프론트엔드",
         r"^(.+?)\s+데이터",
@@ -259,6 +333,7 @@ def _extract_company_name(title: str) -> str:
 def _remove_platform_noise(title: str) -> str:
     cleaned = re.sub(r"\s*\|\s*(원티드|wanted|jumpit|점핏|linkedin|glassdoor).*$", "", title, flags=re.I)
     cleaned = re.sub(r"\s*-\s*(LinkedIn|Glassdoor).*$", "", cleaned, flags=re.I)
+    cleaned = re.sub(r"^LinkedIn\s+\S+\s+[?›>]\s+", "", cleaned, flags=re.I)
     cleaned = cleaned.replace("채용 공고", "채용")
     return cleaned.strip()
 
@@ -276,9 +351,39 @@ def _is_valid_company_name(name: str) -> bool:
         "naver",
         "bing",
         "duckduckgo",
+        "채용",
+        "채용공고",
+        "백엔드",
+        "프론트엔드",
+        "데이터",
     }
+    invalid_fragments = (
+        "백엔드",
+        "프론트",
+        "데이터",
+        "data engineer",
+        "개발",
+        "엔지니어",
+        "developer",
+        "backend",
+        "frontend",
+        "blockchain",
+        "블록체인",
+        "서버",
+        "채용",
+        "시니어",
+        "주니어",
+        "팀장",
+        "리드",
+    )
     normalized = re.sub(r"\s+", " ", name).strip().lower()
-    return normalized not in {item.lower() for item in platform_names}
+    return (
+        1 <= len(name.strip()) <= 40
+        and normalized not in {item.lower() for item in platform_names}
+        and not any(fragment in normalized for fragment in invalid_fragments)
+        and "(" not in name
+        and ")" not in name
+    )
 
 
 def _fallback_experience(target_role: str, has_postings: bool) -> list[str]:

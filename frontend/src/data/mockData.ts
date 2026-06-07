@@ -14,6 +14,7 @@ export const PHASES = [
 export const mockRoadmap: RoadmapViewResponse = {
   recommendedPath: 'AI Product Engineer',
   skillGaps: ['시스템 설계 경험', '배포/운영 경험', 'AI 모델링 이해'],
+  companies: ['네이버', '카카오', '토스', '뤼튼테크놀로지스'],
   roadmap: {
     week1To2: ['필수 개념 학습', '개발 환경 세팅', '기초 프로젝트 기획', '자료구조/알고리즘 복습'],
     week3To4: ['AI 모델링 이해', 'API 개발 연습', '기초 프로젝트 개선', '데이터 전처리 실습'],
@@ -30,6 +31,7 @@ export function toRoadmapViewResponse(
   return {
     recommendedPath: response.recommendedPath,
     skillGaps: response.skillGaps,
+    companies: response.companies ?? [],
     roadmap: response.roadmap,
     progress: 'progress' in response ? response.progress : { week1To2: 0, week3To4: 0, week5To6: 0, week7To8: 0 },
     currentWeek: 'currentWeek' in response ? response.currentWeek : 1,
