@@ -102,7 +102,7 @@ class Agent1:
         user_prompt = f"User Onboarding Profile:\n{user_input.model_dump_json(indent=2)}"
         
         # 3. Solar API 동기식 호출 진행
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model="solar-pro3",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
